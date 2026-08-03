@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "itacap-app": "pi-muller-soe-doe-itac-program"
+  },
+  "targets": {
+    "pi-muller-soe-doe-itac-program": {
+      "hosting": {
+        "students-itacs-university": [
+          "students-itacs-university"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
