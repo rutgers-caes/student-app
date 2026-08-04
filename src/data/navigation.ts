@@ -6,5 +6,5 @@ export const navItems = [
   { label: 'Portal Survey', href: '/portal-survey' },
   { label: 'Entry Survey', href: '/entry-survey' },
   { label: 'Exit Survey', href: '/exit-survey' },
-  { label: 'Email Us', href: 'mailto:student.portal@iac.university' },
+  { label: 'Email Us', href: 'mailto:students@iac.university' },
 ];

@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Button, Checkbox, TextArea, TextField } from '@radix-ui/themes';
 import { ClipboardCheck, Send } from 'lucide-react';
 import { AppNavbar } from '@/components/AppNavbar';
+import { demoStudent, profileImage } from '@/data/demo-student';
 import { surveySections, type SurveySectionKey } from '@/data/portal-survey';
 
 type SurveyAnswers = Record<SurveySectionKey, string[]> & {
@@ -52,7 +53,7 @@ export default function PortalSurvey() {
 
   return (
     <div className="min-h-screen bg-[#f4f7fb]">
-      <AppNavbar />
+      <AppNavbar firstName={demoStudent.firstName} profileImage={profileImage} />
       <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
         <form className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" onSubmit={handleSubmit}>
           <header className="border-b border-slate-200 bg-slate-50 px-6 py-4">
@@ -100,7 +101,7 @@ export default function PortalSurvey() {
             <section className="px-6 py-5">
               <label className="block">
                 <span className="mb-3 block text-lg font-semibold text-slate-950">
-                  What additional tools and/or resources would you like have in the IAC Student Portal?
+                  What additional tools and/or resources would you like have in the ITAC Student Portal?
                 </span>
                 <TextArea
                   className="min-h-[110px]"

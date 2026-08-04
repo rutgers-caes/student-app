@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, TextField } from '@radix-ui/themes';
 import { CircleHelp, ClipboardList, LogIn } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { AboutStudentPortalModal } from '@/components/AboutStudentPortalModal';
 
 export default function LoginPage() {
@@ -27,9 +28,11 @@ export default function LoginPage() {
             </label>
 
             <div className="mb-5.5 ml-[90px] mt-1 flex flex-wrap items-center justify-center gap-3 max-sm:ml-0">
-              <Button color="gray" highContrast type="button">
-                <ClipboardList aria-hidden="true" size={20} />
-                Register
+              <Button asChild color="gray" highContrast>
+                <Link to="/register">
+                  <ClipboardList aria-hidden="true" size={20} />
+                  Register
+                </Link>
               </Button>
               <Button type="submit">
                 <LogIn aria-hidden="true" size={21} />

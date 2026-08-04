@@ -1,7 +1,7 @@
 export const surveySections = [
   {
     key: 'socialMedia',
-    question: 'To improve communication between IAC students, what Social Media options would you prefer?',
+    question: 'To improve communication between ITAC students, what Social Media options would you prefer?',
     options: ['LinkedIn', 'Discord', 'Reddit', 'Slack', 'Facebook', 'Twitter'],
   },
   {

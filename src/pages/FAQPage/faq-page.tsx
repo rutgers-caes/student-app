@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
-import { ArrowRight, HelpCircle, Mail } from 'lucide-react';
+import { HelpCircle, Mail } from 'lucide-react';
 import { AppNavbar } from '@/components/AppNavbar';
+import { demoStudent, profileImage } from '@/data/demo-student';
 
 const faqItems = [
   {
@@ -28,7 +28,7 @@ const faqItems = [
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-[#f4f7fb]">
-      <AppNavbar />
+      <AppNavbar firstName={demoStudent.firstName} profileImage={profileImage} />
       <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
         <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5">
@@ -41,19 +41,14 @@ export default function FAQPage() {
                 <h1 className="text-2xl font-semibold text-slate-950">FAQ</h1>
               </div>
             </div>
-            {/* TODO: Implement the "go back home" link  IF Stakeholder needs it*/}
-            {/* <Link className="inline-flex items-center gap-2 text-lg font-semibold text-doe-blue no-underline hover:underline" to="/profile">
-              go back home
-              <ArrowRight aria-hidden="true" size={24} />
-            </Link> */}
           </header>
 
           <div className="px-6 py-5">
             <p className="flex flex-wrap items-center gap-2 text-xl text-slate-800">
               <Mail aria-hidden="true" className="text-doe-blue" size={22} />
               Still have a question not covered below? Email us at:
-              <a className="font-semibold text-doe-blue underline underline-offset-4" href="mailto:student.portal@iac.university">
-                student.portal@iac.university
+              <a className="font-semibold text-doe-blue underline underline-offset-4" href="mailto:students@iac.university">
+                students@iac.university
               </a>
             </p>
           </div>
