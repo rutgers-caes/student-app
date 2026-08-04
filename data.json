@@ -1,0 +1,23 @@
+{
+    "studentID": 1, 
+    "name": "Honey P.",
+    "email": "hnp44@scarletmail.rutgers.edu", 
+    "Center": "RU-IAC | Rutgers, State Univ. of NJ",
+    "Type": "Undergraduate", 
+    "Status": "Active",
+    "Major": "Computer Science",
+    "AssessmentID": "TC1001", 
+    "Faculty/Staff": "Dr. Sush",
+    "Student Participants": [
+        {
+            "name": "Honey P.",
+            "email": "hnp44@scarletmail.rutgers.edu"
+        }, 
+        {
+            "name": "John Doe",
+            "email": "johndoe@example.com`"
+        }
+    ],
+    "LinkedIn": "https://www.linkedin.com/in/honeypatel"
+
+}
