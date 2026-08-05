@@ -4,6 +4,7 @@ import CertificateRequestPage from '@/pages/CertificateRequestPage/certificate-r
 import FAQPage from '@/pages/FAQPage/faq-page';
 import LandingPage from '@/pages/LandingPage/landing-page';
 import LoginPage from '@/pages/LoginPage/login-page';
+import PasswordResetPage from '@/pages/PasswordResetPage/password-reset-page';
 import PortalSurvey from '@/pages/PortalSurvey/portal-survey';
 import RegisterPage from '@/pages/RegisterPage/register-page';
 import { profilePath } from '@/data/navigation';
@@ -15,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/password/reset" element={<PasswordResetPage />} />
           <Route path={profilePath} element={<LandingPage />} />
           <Route path="/edit-profile" element={<LandingPage view="edit" />} />
           <Route path="/center-students" element={<LandingPage view="center-students" />} />

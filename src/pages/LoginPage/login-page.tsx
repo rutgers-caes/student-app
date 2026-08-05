@@ -40,7 +40,9 @@ export default function LoginPage() {
               </Button>
               <a
                 className="rounded-md px-1 py-2 text-base font-semibold text-doe-blue underline underline-offset-4 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-blue-200 max-sm:w-full max-sm:text-center"
-                href="/forgot-password"
+                href="/password/reset"
+                target="_blank"
+                rel="noreferrer"
               >
                 Forgot Password?
               </a>

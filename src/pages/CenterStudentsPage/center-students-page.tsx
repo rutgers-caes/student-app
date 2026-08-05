@@ -334,7 +334,14 @@ function AssessmentPanel({ allowDownloads = false, student }: { allowDownloads?:
               key={assessment.id}
             >
               <div>
-                <p className="text-lg font-bold text-doe-blue">{assessment.id}</p>
+                <a
+                  className="text-lg font-bold text-doe-blue underline underline-offset-4"
+                  href={`https://itac.university/assessment/${assessment.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {assessment.id}
+                </a>
                 <p className="mt-1 text-base font-semibold text-slate-950">{assessment.date}</p>
               </div>
               <PersonPill name={assessment.facultyStaff} role={assessment.studentRole === 'Lead' ? 'Lead' : undefined} />
