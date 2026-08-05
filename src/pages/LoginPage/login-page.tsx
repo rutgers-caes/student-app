@@ -10,7 +10,7 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_50%_18%,rgb(96_122_168_/_8%),transparent_28%),linear-gradient(180deg,#fff_0%,#f8fafc_100%)] px-5 py-8">
       <section className="flex w-full max-w-[760px] flex-col items-center" aria-labelledby="login-title">
-        <img className="block w-[min(430px,76vw)]" src="/Docs/DOE_blue_seal_logo.png" alt="U.S. Department of Energy" />
+        <img className="block w-[min(430px,76vw)]" src={`${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo.png`} alt="U.S. Department of Energy" />
         
         <div className="w-full max-w-[680px] px-[34px] py-7 max-sm:px-[18px]">
           <h1 className="my-7 text-center text-[clamp(32px,4vw,46px)] font-normal leading-tight tracking-normal text-slate-950" id="login-title">
@@ -40,7 +40,7 @@ export default function LoginPage() {
               </Button>
               <a
                 className="rounded-md px-1 py-2 text-base font-semibold text-doe-blue underline underline-offset-4 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-blue-200 max-sm:w-full max-sm:text-center"
-                href="/password/reset"
+                href={`${import.meta.env.BASE_URL}password/reset`}
                 target="_blank"
                 rel="noreferrer"
               >

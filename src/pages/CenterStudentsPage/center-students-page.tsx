@@ -51,7 +51,7 @@ export function CenterStudentsPage() {
 function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student: CenterStudent }) {
   const [uploadedProfileImage, setUploadedProfileImage] = useState('');
   const assessmentTotalForStudent = getAssessmentTotal(student.assessmentCounts);
-  const studentProfileImage = uploadedProfileImage || (student.id === demoStudent.id ? profileImage : '/Docs/DOE_blue_seal_logo-head.png');
+  const studentProfileImage = uploadedProfileImage || (student.id === demoStudent.id ? profileImage : `${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo-head.png`);
 
   function handleProfilePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -382,7 +382,7 @@ function PersonPill({
   return (
     <div className={`inline-flex min-h-11 max-w-full items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold ${roleStyle.container}`}>
       <span className={`h-7 w-7 shrink-0 rounded-full ${highlighted || roleStyle.isColorCoded ? 'bg-white' : 'bg-slate-200'}`}>
-        <img className="h-full w-full rounded-full object-cover" src={highlighted ? profileImage : '/Docs/DOE_blue_seal_logo-head.png'} alt="" />
+        <img className="h-full w-full rounded-full object-cover" src={highlighted ? profileImage : `${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo-head.png`} alt="" />
       </span>
       {role && <span className={`text-xs font-bold ${roleStyle.roleText}`}>{role}</span>}
       <span className={muted ? 'truncate text-slate-600' : 'truncate'}>{name}</span>

@@ -3,7 +3,7 @@ import { Award, Download, FileText, Mail, ShieldCheck } from 'lucide-react';
 import { AppNavbar } from '@/components/AppNavbar';
 import { demoStudent, profileImage } from '@/data/demo-student';
 
-const certificateApplicationPath = '/application/Certificate%20Application.docx';
+const certificateApplicationPath = `${import.meta.env.BASE_URL}application/Certificate%20Application.docx`;
 const certificateEmail = 'certificates@iac.university';
 
 export default function CertificateRequestPage() {

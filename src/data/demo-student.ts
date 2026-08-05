@@ -126,7 +126,7 @@ const centerStudentDefaults = [
   },
 ];
 
-export const fallbackProfileImage = '/Docs/student.jpeg';
+export const fallbackProfileImage = `${import.meta.env.BASE_URL}Docs/student.jpeg`;
 
 export const demoStudent = {
   id: String(studentJson.studentID || '4274'),

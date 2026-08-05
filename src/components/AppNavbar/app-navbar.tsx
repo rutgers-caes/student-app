@@ -16,7 +16,7 @@ export function AppNavbar({ firstName = 'Student', profileImage = fallbackProfil
     <header className="bg-primary px-5 text-primary-text shadow-[0_2px_10px_rgb(20_30_44_/_18%)]">
       <div className="grid min-h-[76px] grid-cols-[minmax(220px,1fr)_auto_minmax(220px,1fr)] items-center gap-6 max-xl:grid-cols-[1fr_auto]">
         <Link className="inline-flex min-w-0 items-center justify-self-start no-underline" to={profilePath} aria-label="U.S. Department of Energy student portal">
-          <img className="block w-[75px] shrink-0 max-sm:w-[56px]" src="/Docs/DOE_blue_seal_logo-head.png" alt="U.S. Department of Energy" />
+          <img className="block w-[75px] shrink-0 max-sm:w-[56px]" src={`${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo-head.png`} alt="U.S. Department of Energy" />
           <span className="ml-3 text-lg font-semibold tracking-tight max-sm:text-base">ITAC Student/Alumni Portal</span>
         </Link>
 
