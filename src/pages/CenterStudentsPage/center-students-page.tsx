@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
-import { ArrowLeft, Camera, Download, Edit3, ExternalLink, FileQuestion, ListChecks, ShieldCheck, Users } from 'lucide-react';
+import { ArrowLeft, Camera, Download, Edit3, ExternalLink, FileQuestion, ListChecks, Mail, ShieldCheck, Users } from 'lucide-react';
 import { demoStudent, profileImage } from '@/data/demo-student';
 import { profilePath } from '@/data/navigation';
 
@@ -75,7 +75,6 @@ function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student:
     <>
       <section className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500">{student.centerCode}</p>
           {mode === 'peer' && <p className="mt-1 text-sm font-semibold text-slate-600">Center student profile</p>}
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -98,10 +97,10 @@ function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student:
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
+      <section className="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-            <img className="aspect-square w-full object-contain p-10" src={studentProfileImage} alt={`${student.name} profile`} />
+          <div className="mx-auto w-fit overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-2">
+            <img className="aspect-square w-[100px] object-contain" src={studentProfileImage} alt={`${student.name} profile`} />
           </div>
           {mode === 'self' && (
             <>
@@ -122,6 +121,9 @@ function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student:
                 Assessment Count
               </h2>
             </div>
+            <div className="px-3 pb-2 pt-3 text-xs font-bold uppercase tracking-[0.06em] text-slate-500">
+              # of Assessments Before Lead
+            </div>
             <div className="grid grid-cols-4 text-center">
               {[
                 ['Lead', student.assessmentCounts.lead],
@@ -139,23 +141,12 @@ function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student:
         </aside>
 
         <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
-            <h2 className="text-3xl font-semibold text-slate-950">{student.name}</h2>
-            {mode === 'self' ? (
-              <Button asChild color="sky" variant="soft">
-                <Link to="/center-students">
-                  <Users aria-hidden="true" size={18} />
-                  List of All Center Students
-                </Link>
-              </Button>
-            ) : (
-              <Button asChild color="blue">
-                <a href={`mailto:${student.email}`}>Email Student</a>
-              </Button>
-            )}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3">
+            <h2 className="text-2xl font-semibold text-slate-950">{student.name}</h2>
+            <ProfileHeaderActions mode={mode} student={student} />
           </div>
 
-          <dl className="grid grid-cols-1 px-6 py-2 md:grid-cols-[240px_minmax(0,1fr)]">
+          <dl className="grid grid-cols-1 px-5 py-1 md:grid-cols-[200px_minmax(0,1fr)]">
             <ProfileRow label="Student ID" value={student.id} />
             <ProfileRow label="Center" value={student.center} />
             <ProfileRow label="Student type" value={student.type} />
@@ -172,23 +163,40 @@ function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student:
                 }
               />
             )}
-            <ProfileRow
-              label="LinkedIn"
-              value={
-                student.linkedin ? (
-                  <a className="inline-flex items-center gap-1 text-doe-blue underline underline-offset-4" href={student.linkedin} target="_blank" rel="noreferrer">
-                    View LinkedIn
-                    <ExternalLink aria-hidden="true" size={16} />
-                  </a>
-                ) : (
-                  'Not available'
-                )
-              }
-            />
           </dl>
         </section>
       </section>
     </>
+  );
+}
+
+function ProfileHeaderActions({ mode, student }: { mode: 'self' | 'peer'; student: CenterStudent }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      {student.linkedin && (
+        <Button asChild color="blue" variant="soft">
+          <a href={student.linkedin} target="_blank" rel="noreferrer">
+            <ExternalLink aria-hidden="true" size={18} />
+            View LinkedIn
+          </a>
+        </Button>
+      )}
+      {mode === 'self' ? (
+        <Button asChild color="sky" variant="soft">
+          <Link to="/center-students">
+            <Users aria-hidden="true" size={18} />
+            List of All Center Students
+          </Link>
+        </Button>
+      ) : (
+        <Button asChild color="sky" variant="soft">
+          <a href={`mailto:${student.email}`}>
+            <Mail aria-hidden="true" size={18} />
+            Email Student
+          </a>
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -393,8 +401,8 @@ function PersonPill({
 function ProfileRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <>
-      <dt className="border-b border-slate-200 py-3 text-sm font-bold uppercase tracking-[0.04em] text-slate-500">{label}</dt>
-      <dd className="border-b border-slate-200 py-3 text-lg text-slate-950">{value}</dd>
+      <dt className="border-b border-slate-200 py-2.5 text-xs font-bold uppercase tracking-[0.04em] text-slate-500">{label}</dt>
+      <dd className="border-b border-slate-200 py-2.5 text-base text-slate-950">{value}</dd>
     </>
   );
 }
