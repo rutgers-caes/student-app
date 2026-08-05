@@ -13,9 +13,12 @@ export default function LoginPage() {
         <img className="block w-[min(430px,76vw)]" src={`${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo.png`} alt="U.S. Department of Energy" />
         
         <div className="w-full max-w-[680px] px-[34px] py-7 max-sm:px-[18px]">
-          <h1 className="my-7 text-center text-[clamp(32px,4vw,46px)] font-normal leading-tight tracking-normal text-slate-950" id="login-title">
+          <p className="mb-2 mt-5 w-full whitespace-nowrap text-center text-[clamp(16px,3vw,26px)] font-semibold leading-tight tracking-normal text-slate-800">
+            Industrial Training and Assessment Centers
+          </p>
+          <h2 className="mb-7 mt-3 text-center text-[clamp(32px,4vw,46px)] font-normal leading-tight tracking-normal text-slate-950" id="login-title">
             Student/Alumni Portal
-          </h1>
+          </h2>
           <form className="mx-auto w-full max-w-[540px]">
             <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
               <span className="text-right text-[17px] text-slate-700 max-sm:text-left">E-Mail Address</span>
