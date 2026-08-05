@@ -484,24 +484,34 @@ function getStudentAssessmentRecords(student: CenterStudent) {
 }
 
 function getRoleStyle(role?: string, highlighted = false) {
-  if (highlighted && role === 'Lead') {
+  const highlightBorder = highlighted ? ' border-black ring-1 ring-black' : '';
+
+  if (role === 'Lead') {
     return {
-      container: 'border-green-300 bg-green-100 text-green-950',
+      container: `border-green-300 bg-green-100 text-green-950${highlightBorder}`,
       isColorCoded: true,
       roleText: 'text-green-700',
     };
   }
 
-  if (highlighted && role === 'Safety') {
+  if (role === 'Safety') {
     return {
-      container: 'border-yellow-300 bg-yellow-100 text-yellow-950',
+      container: `border-yellow-300 bg-yellow-100 text-yellow-950${highlightBorder}`,
       isColorCoded: true,
       roleText: 'text-yellow-700',
     };
   }
 
+  if (role === 'Other') {
+    return {
+      container: `border-sky-300 bg-sky-100 text-sky-950${highlightBorder}`,
+      isColorCoded: true,
+      roleText: 'text-sky-700',
+    };
+  }
+
   return {
-    container: highlighted ? 'border-blue-500 bg-sky-200 text-slate-950' : 'border-slate-300 bg-white text-slate-700',
+    container: highlighted ? 'border-black bg-white text-slate-950 ring-1 ring-black' : 'border-slate-300 bg-white text-slate-700',
     isColorCoded: false,
     roleText: 'text-slate-400',
   };
