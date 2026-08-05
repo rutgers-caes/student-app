@@ -5,6 +5,10 @@ import path from 'node:path';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  base: '/student-app/',
+  build: {
+    outDir: 'docs',
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {

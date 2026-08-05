@@ -12,7 +12,7 @@ import { profilePath } from '@/data/navigation';
 function App() {
   return (
     <Theme radius="medium">
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
