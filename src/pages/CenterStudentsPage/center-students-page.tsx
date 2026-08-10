@@ -400,7 +400,7 @@ function AssessmentPanel({ allowDownloads = false, portalStudent, student }: { a
                   <PersonPill key={`${assessment.id}-${facultyStaff.participantId}-${facultyStaff.name}`} name={facultyStaff.name} role={facultyStaff.role} />
                 ))}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap content-start items-start gap-2">
                 {sortParticipantsByRole(assessment.participants).map((participant) => (
                   <PersonPill
                     highlighted={String(participant.participantId) === student.id}
@@ -438,7 +438,7 @@ function PersonPill({
   const roleStyle = getRoleStyle(role, highlighted);
 
   return (
-    <div className={`inline-flex min-h-11 max-w-full items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold ${roleStyle.container}`}>
+    <div className={`inline-flex h-11 w-60 max-w-full items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold ${roleStyle.container}`}>
       <span className={`h-7 w-7 shrink-0 rounded-full ${highlighted || roleStyle.isColorCoded ? 'bg-white' : 'bg-slate-200'}`}>
         <ProfileImage className="h-full w-full rounded-full" imageSrc={imageSrc || ''} label="" />
       </span>
