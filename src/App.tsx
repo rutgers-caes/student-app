@@ -18,6 +18,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/password/reset" element={<PasswordResetPage />} />
           <Route path={profilePath} element={<LandingPage />} />
+          <Route path="/:studentSlug/profile/detail" element={<LandingPage />} />
           <Route path="/edit-profile" element={<LandingPage view="edit" />} />
           <Route path="/center-students" element={<LandingPage view="center-students" />} />
           <Route path="/students/:studentId" element={<LandingPage view="student-profile" />} />

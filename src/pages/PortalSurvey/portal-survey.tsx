@@ -2,8 +2,10 @@ import { FormEvent, useState } from 'react';
 import { Button, Checkbox, TextArea, TextField } from '@radix-ui/themes';
 import { ClipboardCheck, Send } from 'lucide-react';
 import { AppNavbar } from '@/components/AppNavbar';
-import { demoStudent, profileImage } from '@/data/demo-student';
+import { studentProfilePath } from '@/data/navigation';
 import { surveySections, type SurveySectionKey } from '@/data/portal-survey';
+import { AuthServiceApi } from '@/services/auth-service';
+import type { StudentProfile } from '@/types/student-profile';
 
 type SurveyAnswers = Record<SurveySectionKey, string[]> & {
   other: Record<SurveySectionKey, string>;
@@ -25,6 +27,7 @@ const emptyAnswers: SurveyAnswers = {
 export default function PortalSurvey() {
   const [answers, setAnswers] = useState<SurveyAnswers>(emptyAnswers);
   const [submitted, setSubmitted] = useState(false);
+  const portalStudent = AuthServiceApi.getStoredStudentProfile<StudentProfile>();
 
   function toggleOption(section: SurveySectionKey, option: string, checked: boolean) {
     setSubmitted(false);
@@ -53,7 +56,7 @@ export default function PortalSurvey() {
 
   return (
     <div className="min-h-screen bg-[#f4f7fb]">
-      <AppNavbar firstName={demoStudent.firstName} profileImage={profileImage} />
+      <AppNavbar firstName={portalStudent?.firstName || 'Student'} profileHref={portalStudent ? studentProfilePath(portalStudent.name) : '/profile'} profileImage={portalStudent?.photoBase64 || ''} />
       <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
         <form className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" onSubmit={handleSubmit}>
           <header className="border-b border-slate-200 bg-slate-50 px-6 py-4">

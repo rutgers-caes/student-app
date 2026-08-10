@@ -43,6 +43,12 @@ export const AuthServiceApi = {
       body: JSON.stringify({ email }),
     });
   },
+  async completeRegistration(email: string, password: string) {
+    return request<{ message: string }>('/auth/register/complete', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  },
   async getMyProfile<T>() {
     const token = this.getToken();
     const profile = await request<T>('/students/me', {
@@ -52,6 +58,14 @@ export const AuthServiceApi = {
     });
     localStorage.setItem(profileStorageKey, JSON.stringify(profile));
     return profile;
+  },
+  async getStudentProfile<T>(studentId: string) {
+    const token = this.getToken();
+    return request<T>(`/students/${studentId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   },
   async logout() {
     localStorage.removeItem(tokenStorageKey);

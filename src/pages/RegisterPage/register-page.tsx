@@ -1,30 +1,62 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button, TextField } from '@radix-ui/themes';
-import { LogIn, Send } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Check, LogIn, Send } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthServiceApi } from '@/services/auth-service';
 
 const supportEmail = 'students@iac.university';
 
 export default function RegisterPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
-  const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [isRegisterAllowed, setIsRegisterAllowed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setStatusMessage('');
-    setTemporaryPassword('');
+    setIsRegisterAllowed(false);
+    setVerifiedEmail('');
+    setPassword('');
+    setConfirmPassword('');
 
     try {
       const result = await AuthServiceApi.requestRegistration(email.trim());
       setStatusMessage(result.message);
-      setTemporaryPassword(result.temporaryPassword || '');
+      setIsRegisterAllowed(result.approved);
+      if (result.approved) {
+        setVerifiedEmail(email.trim());
+      }
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Unable to request registration.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (password !== confirmPassword) {
+      setStatusMessage('Passwords do not match.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setStatusMessage('');
+
+    try {
+      const result = await AuthServiceApi.completeRegistration(verifiedEmail, password);
+      setStatusMessage(`${result.message} You can now log in.`);
+      setTimeout(() => navigate('/'), 900);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Unable to complete registration.');
     } finally {
       setIsSubmitting(false);
     }
@@ -59,8 +91,7 @@ export default function RegisterPage() {
               <div className="grid gap-4 text-[16px] leading-7 text-slate-800">
                 <p>
                   To register, we need to verify that you are already entered as a current or former student in the ITAC database. Enter an email
-                  address below that matches your ITAC student record. If this email matches an approved record, you will receive an email with a
-                  link to complete your registration.
+                  address below that matches your ITAC student record. If this email exists in the student database, you can create your portal password.
                 </p>
 
                 <p>
@@ -75,7 +106,7 @@ export default function RegisterPage() {
                 </p>
               </div>
 
-              <form className="mx-auto mt-6 w-full max-w-[540px] border-t border-slate-200 pt-6" onSubmit={handleSubmit}>
+              <form className="mx-auto mt-6 w-full max-w-[540px] border-t border-slate-200 pt-6" onSubmit={handleEmailSubmit}>
                 <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
                   <span className="text-right text-[17px] text-slate-700 max-sm:text-left">E-Mail Address</span>
                   <TextField.Root
@@ -97,14 +128,53 @@ export default function RegisterPage() {
                 </div>
               </form>
 
+              {isRegisterAllowed && verifiedEmail && (
+                <form className="mx-auto mt-6 w-full max-w-[540px] border-t border-slate-200 pt-6" onSubmit={handlePasswordSubmit}>
+                  <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
+                    <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Password</span>
+                    <TextField.Root
+                      type="password"
+                      size="3"
+                      autoComplete="new-password"
+                      placeholder="Create a password"
+                      required
+                      minLength={8}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
+                  </label>
+
+                  <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
+                    <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Confirm</span>
+                    <TextField.Root
+                      type="password"
+                      size="3"
+                      autoComplete="new-password"
+                      placeholder="Confirm password"
+                      required
+                      minLength={8}
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                    />
+                  </label>
+
+                  <div className="mb-2 ml-[90px] mt-1 flex flex-wrap items-center justify-center gap-3 max-sm:ml-0">
+                    <Button type="submit" disabled={isSubmitting || !password || password !== confirmPassword}>
+                      <Check aria-hidden="true" size={19} />
+                      {isSubmitting ? 'Creating' : 'Create Password'}
+                    </Button>
+                  </div>
+                </form>
+              )}
+
               {statusMessage && (
-                <div className="mt-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-center text-[15px] leading-6 text-slate-800" role="status">
+                <div
+                  className={`mt-4 rounded-md border px-4 py-3 text-center text-[15px] leading-6 ${
+                    isRegisterAllowed ? 'border-blue-100 bg-blue-50 text-slate-800' : 'border-red-100 bg-red-50 font-semibold text-red-700'
+                  }`}
+                  role="status"
+                >
                   {statusMessage}
-                  {temporaryPassword && (
-                    <p className="mt-2 font-semibold">
-                      Local temporary password: <span className="font-mono">{temporaryPassword}</span>
-                    </p>
-                  )}
                 </div>
               )}
             </div>

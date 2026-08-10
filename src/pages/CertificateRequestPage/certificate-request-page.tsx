@@ -1,15 +1,19 @@
 import { Button } from '@radix-ui/themes';
 import { Award, Download, FileText, Mail, ShieldCheck } from 'lucide-react';
 import { AppNavbar } from '@/components/AppNavbar';
-import { demoStudent, profileImage } from '@/data/demo-student';
+import { studentProfilePath } from '@/data/navigation';
+import { AuthServiceApi } from '@/services/auth-service';
+import type { StudentProfile } from '@/types/student-profile';
 
 const certificateApplicationPath = '/application/Certificate%20Application.docx';
 const certificateEmail = 'certificates@iac.university';
 
 export default function CertificateRequestPage() {
+  const portalStudent = AuthServiceApi.getStoredStudentProfile<StudentProfile>();
+
   return (
     <div className="min-h-screen bg-[#f4f7fb]">
-      <AppNavbar firstName={demoStudent.firstName} profileImage={profileImage} />
+      <AppNavbar firstName={portalStudent?.firstName || 'Student'} profileHref={portalStudent ? studentProfilePath(portalStudent.name) : '/profile'} profileImage={portalStudent?.photoBase64 || ''} />
       <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
         <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           <header className="border-b border-slate-200 bg-slate-50 px-6 py-5">

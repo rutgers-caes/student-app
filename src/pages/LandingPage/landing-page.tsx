@@ -1,38 +1,54 @@
-import { FormEvent, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Select, TextField } from '@radix-ui/themes';
 import { ArrowLeft, CheckCircle2, Circle, Save } from 'lucide-react';
 import { AppNavbar } from '@/components/AppNavbar';
 import { CenterStudentsPage, PeerStudentProfilePage, StudentProfileView } from '@/pages/CenterStudentsPage/center-students-page';
 import { centers } from '@/data/CenterBranding';
-import { demoStudent, profileImage } from '@/data/demo-student';
-import { profilePath } from '@/data/navigation';
+import { profilePath, studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
+import type { StudentProfile } from '@/types/student-profile';
 
 type LandingPageProps = {
   view?: 'profile' | 'edit' | 'center-students' | 'student-profile';
 };
 
 type TextInputType = 'email' | 'password' | 'text' | 'date';
+type TextInputAutoComplete = 'email' | 'new-password' | 'off';
 
-const initialProfileForm = {
-  email: demoStudent.email,
-  alternateEmail: demoStudent.alternateEmail,
-  studentType: demoStudent.studentType,
-  major: demoStudent.major,
-  programStartDate: demoStudent.programStartDate,
-  classStanding: demoStudent.classStanding,
-  linkedin: demoStudent.linkedin,
-  graduationYear: demoStudent.graduationYear,
-  graduateStudentType: demoStudent.graduateStudentType,
-  password: '',
-  confirmPassword: '',
-};
+
 
 export default function LandingPage({ view = 'profile' }: LandingPageProps) {
-  const portalStudent = AuthServiceApi.getStoredStudentProfile<typeof demoStudent>() || demoStudent;
-  const [form, setForm] = useState(initialProfileForm);
+  const [portalStudent, setPortalStudent] = useState<StudentProfile | null>(() => AuthServiceApi.getStoredStudentProfile<StudentProfile>());
+  const [form, setForm] = useState(() => buildProfileForm(portalStudent));
   const [savedMessage, setSavedMessage] = useState('');
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const profileHref = portalStudent ? studentProfilePath(portalStudent.name) : profilePath;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    AuthServiceApi.getMyProfile<StudentProfile>()
+      .then((profile) => {
+        if (!isMounted) return;
+        setPortalStudent(profile);
+        setForm(buildProfileForm(profile));
+        setLoadState('ready');
+        if (view === 'profile' && location.pathname === profilePath) {
+          navigate(studentProfilePath(profile.name), { replace: true });
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setLoadState('error');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location.pathname, navigate, view]);
 
   const showGraduateType = useMemo(
     () => form.studentType === 'Graduate' || form.classStanding === 'Graduate Student',
@@ -49,7 +65,8 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
   const passwordValid = Object.values(passwordRules).every(Boolean);
   const confirmPasswordMatches = Boolean(form.password) && form.password === form.confirmPassword;
   const passwordSectionValid = !passwordStarted || (passwordValid && confirmPasswordMatches);
-  const formChanged = Object.entries(form).some(([field, value]) => initialProfileForm[field as keyof typeof initialProfileForm] !== value);
+  const initialFormForStudent = useMemo(() => buildProfileForm(portalStudent), [portalStudent]);
+  const formChanged = Object.entries(form).some(([field, value]) => initialFormForStudent[field as keyof typeof initialFormForStudent] !== value);
   const requiredComplete =
     form.email &&
     form.alternateEmail &&
@@ -89,8 +106,12 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
 
   return (
     <div className="min-h-screen bg-[#f4f7fb]">
-      <AppNavbar firstName={portalStudent.firstName} profileImage={portalStudent.photoBase64 || profileImage} />
-      {view === 'edit' ? (
+      <AppNavbar firstName={portalStudent?.firstName || 'Student'} profileHref={profileHref} profileImage={portalStudent?.photoBase64 || ''} />
+      {loadState === 'loading' && <PageNotice message="Loading your student profile..." />}
+      {loadState === 'error' && <PageNotice tone="error" message="Unable to refresh your profile. Showing the last available student data." />}
+      {!portalStudent && loadState !== 'error' ? null : !portalStudent ? (
+        <PageNotice tone="error" message="Unable to load your profile. Please log in again." />
+      ) : view === 'edit' ? (
         <EditProfileView
           form={form}
           onSubmit={handleSubmit}
@@ -100,27 +121,52 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
           emailsAreDifferent={emailsAreDifferent}
           passwordRules={passwordRules}
           passwordStarted={passwordStarted}
+          profileHref={profileHref}
           savedMessage={savedMessage}
           showGraduateType={showGraduateType}
         />
       ) : view === 'center-students' ? (
-        <CenterStudentsPage />
+        <CenterStudentsPage portalStudent={portalStudent} />
       ) : view === 'student-profile' ? (
         <>
           <CenterBrandingBanner student={portalStudent} />
-          <PeerStudentProfilePage />
+          <PeerStudentProfilePage portalStudent={portalStudent} />
         </>
       ) : (
         <>
           <CenterBrandingBanner student={portalStudent} />
-          <StudentProfileView />
+          <StudentProfileView portalStudent={portalStudent} />
         </>
       )}
     </div>
   );
 }
 
-function CenterBrandingBanner({ student }: { student: typeof demoStudent }) {
+function buildProfileForm(student: StudentProfile | null) {
+  return {
+    email: student?.email || '',
+    alternateEmail: student?.alternateEmail || '',
+    studentType: student?.studentType || '',
+    major: student?.major || '',
+    programStartDate: student?.programStartDate || '',
+    classStanding: student?.classStanding || '',
+    linkedin: student?.linkedin || '',
+    graduationYear: student?.graduationYear || '',
+    graduateStudentType: student?.graduateStudentType || '',
+    password: '',
+    confirmPassword: '',
+  };
+}
+
+function PageNotice({ message, tone = 'info' }: { message: string; tone?: 'info' | 'error' }) {
+  return (
+    <div className={tone === 'error' ? 'border-b border-red-100 bg-red-50 px-5 py-2 text-center text-sm font-semibold text-red-700' : 'border-b border-blue-100 bg-blue-50 px-5 py-2 text-center text-sm font-semibold text-blue-800'}>
+      {message}
+    </div>
+  );
+}
+
+function CenterBrandingBanner({ student }: { student: StudentProfile }) {
   const centerCode = student.centerCode.split('-')[0];
   const center = centers.find((centerOption) => centerOption.code === centerCode);
   const primaryColor = center?.colors[0] || '#607aa8';
@@ -160,6 +206,7 @@ function EditProfileView({
   emailsAreDifferent,
   passwordRules,
   passwordStarted,
+  profileHref,
   savedMessage,
   showGraduateType,
 }: {
@@ -171,6 +218,7 @@ function EditProfileView({
   emailsAreDifferent: boolean;
   passwordRules: Record<'length' | 'number' | 'symbol', boolean>;
   passwordStarted: boolean;
+  profileHref: string;
   savedMessage: string;
   showGraduateType: boolean;
 }) {
@@ -182,14 +230,14 @@ function EditProfileView({
           <h1 className="mt-1 text-[clamp(30px,4vw,42px)] font-semibold leading-tight text-slate-950">Edit Profile</h1>
         </div>
         <Button asChild color="gray" variant="soft">
-          <Link to={profilePath}>
+          <Link to={profileHref}>
             <ArrowLeft aria-hidden="true" size={18} />
             Back to Profile
           </Link>
         </Button>
       </div>
 
-      <form className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm" onSubmit={onSubmit}>
+      <form className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm" autoComplete="off" onSubmit={onSubmit}>
         <div className="grid gap-5 md:grid-cols-2">
           <RequiredTextField label="Email" type="email" value={form.email} onChange={(value) => onUpdate('email', value)} />
           <div>
@@ -226,11 +274,25 @@ function EditProfileView({
           <h2 className="text-xl font-semibold text-slate-950">Password Update</h2>
           <div className="mt-4 grid gap-5 md:grid-cols-2">
             <div>
-              <TextInput label="New password" type="password" value={form.password} onChange={(value) => onUpdate('password', value)} />
+              <TextInput
+                autoComplete="new-password"
+                label="New password"
+                name="new-password"
+                type="password"
+                value={form.password}
+                onChange={(value) => onUpdate('password', value)}
+              />
               {passwordStarted && <PasswordRuleList rules={passwordRules} />}
             </div>
             <div>
-              <TextInput label="Confirm password" type="password" value={form.confirmPassword} onChange={(value) => onUpdate('confirmPassword', value)} />
+              <TextInput
+                autoComplete="new-password"
+                label="Confirm password"
+                name="confirm-new-password"
+                type="password"
+                value={form.confirmPassword}
+                onChange={(value) => onUpdate('confirmPassword', value)}
+              />
               {passwordStarted && (
                 <PasswordRule complete={confirmPasswordMatches} label={confirmPasswordMatches ? 'Passwords match' : 'Passwords must match'} />
               )}
@@ -278,14 +340,18 @@ function RequiredTextField({ label, ...props }: Parameters<typeof TextInput>[0])
 }
 
 function TextInput({
+  autoComplete,
   label,
+  name,
   value,
   onChange,
   placeholder,
   required = false,
   type = 'text',
 }: {
+  autoComplete?: TextInputAutoComplete;
   label: string;
+  name?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -298,7 +364,15 @@ function TextInput({
         {label}
         {required && <span className="text-red-600"> *</span>}
       </span>
-      <TextField.Root required={required} type={type} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+      <TextField.Root
+        autoComplete={autoComplete}
+        name={name}
+        required={required}
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
   );
 }

@@ -2,59 +2,79 @@ import { useEffect, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
-import { ArrowLeft, Camera, Download, Edit3, ExternalLink, FileQuestion, ListChecks, Mail, ShieldCheck, Users } from 'lucide-react';
-import { demoStudent, profileImage } from '@/data/demo-student';
-import { profilePath } from '@/data/navigation';
+import { ArrowLeft, Camera, Download, Edit3, ExternalLink, FileQuestion, ListChecks, Mail, ShieldCheck, User, Users } from 'lucide-react';
+import { profilePath, studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
+import type { CenterStudentProfile, StudentProfile } from '@/types/student-profile';
 
-type CenterStudent = (typeof demoStudent.centerStudents)[number];
+type PortalStudent = StudentProfile;
+type CenterStudent = CenterStudentProfile;
 
-export function StudentProfileView() {
-  const currentStudent = getCurrentCenterStudent();
+export function StudentProfileView({ portalStudent }: { portalStudent: PortalStudent }) {
+  const currentStudent = getCurrentCenterStudent(portalStudent);
 
   return (
     <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-      <StudentProfileCard student={currentStudent} mode="self" />
+      <StudentProfileCard portalStudent={portalStudent} student={currentStudent} mode="self" />
 
       <div className="mt-6">
-        <AssessmentPanel allowDownloads student={currentStudent} />
+        <AssessmentPanel allowDownloads portalStudent={portalStudent} student={currentStudent} />
       </div>
     </main>
   );
 }
 
-export function PeerStudentProfilePage() {
+export function PeerStudentProfilePage({ portalStudent }: { portalStudent: PortalStudent }) {
   const { studentId } = useParams();
-  const portalStudent = getPortalStudent();
-  const student = portalStudent.centerStudents.find((centerStudent) => centerStudent.id === studentId);
+  const directoryStudent = portalStudent.centerStudents.find((centerStudent) => centerStudent.id === studentId);
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+  const student = studentProfile || directoryStudent;
+  const profileHref = studentProfilePath(portalStudent.name);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (studentId && studentId !== portalStudent.id) {
+      AuthServiceApi.getStudentProfile<StudentProfile>(studentId)
+        .then((profile) => {
+          if (isMounted) setStudentProfile(profile);
+        })
+        .catch(() => {
+          if (isMounted) setStudentProfile(null);
+        });
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [portalStudent.id, studentId]);
 
   if (!student || student.id === portalStudent.id) {
-    return <Navigate to={profilePath} replace />;
+    return <Navigate to={profileHref} replace />;
   }
 
   return (
     <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-      <StudentProfileCard student={student} mode="peer" />
+      <StudentProfileCard portalStudent={portalStudent} student={student} mode="peer" />
       <div className="mt-6">
-        <AssessmentPanel student={student} />
+        <AssessmentPanel portalStudent={portalStudent} student={student} />
       </div>
     </main>
   );
 }
 
-export function CenterStudentsPage() {
+export function CenterStudentsPage({ portalStudent }: { portalStudent: PortalStudent }) {
   return (
     <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-      <CenterStudentDirectory />
+      <CenterStudentDirectory portalStudent={portalStudent} />
     </main>
   );
 }
 
-function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student: CenterStudent }) {
+function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | 'peer'; portalStudent: PortalStudent; student: CenterStudent | StudentProfile }) {
   const [uploadedProfileImage, setUploadedProfileImage] = useState('');
-  const portalStudent = getPortalStudent();
   const assessmentTotalForStudent = getAssessmentTotal(student.assessmentCounts);
-  const studentProfileImage = uploadedProfileImage || (student.id === portalStudent.id ? portalStudent.photoBase64 || profileImage : `${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo-head.png`);
+  const studentProfileImage = uploadedProfileImage || student.photoBase64 || '';
 
   function handleProfilePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -103,7 +123,7 @@ function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student:
       <section className="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mx-auto w-fit overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-2">
-            <img className="aspect-square w-[100px] object-contain" src={studentProfileImage} alt={`${student.name} profile`} />
+            <ProfileImage className="aspect-square w-[100px]" imageSrc={studentProfileImage} label={`${student.name} profile`} />
           </div>
           {mode === 'self' && (
             <>
@@ -154,14 +174,14 @@ function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student:
             <ProfileRow label="Center" value={student.center} />
             <ProfileRow label="Student type" value={student.type} />
             <ProfileRow label="Student role" value={<StudentStatusBadge status={student.status} compact />} />
-            <ProfileRow label="ITAC Student Certificate" value={<CertificateStatus student={student} />} />
+            <ProfileRow label="ITAC Student Certificate" value={<CertificateStatus portalStudent={portalStudent} student={student} />} />
             <ProfileRow label="Time in ITAC" value={student.timeInItac} />
             {mode === 'peer' && (
               <ProfileRow
                 label="Email"
                 value={
                   <a className="font-semibold text-doe-blue underline underline-offset-4" href={`mailto:${student.email}`}>
-                    {student.email}
+                    {formatValue(student.email)}
                   </a>
                 }
               />
@@ -173,7 +193,7 @@ function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student:
   );
 }
 
-function ProfileHeaderActions({ mode, student }: { mode: 'self' | 'peer'; student: CenterStudent }) {
+function ProfileHeaderActions({ mode, student }: { mode: 'self' | 'peer'; student: CenterStudent | StudentProfile }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       {student.linkedin && (
@@ -203,9 +223,9 @@ function ProfileHeaderActions({ mode, student }: { mode: 'self' | 'peer'; studen
   );
 }
 
-function CenterStudentDirectory() {
-  const centerStudents = getVisibleCenterStudents();
-  const portalStudent = getPortalStudent();
+function CenterStudentDirectory({ portalStudent }: { portalStudent: PortalStudent }) {
+  const centerStudents = getVisibleCenterStudents(portalStudent);
+  const profileHref = studentProfilePath(portalStudent.name);
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -222,7 +242,7 @@ function CenterStudentDirectory() {
             {centerStudents.length} students
           </Badge>
           <Button asChild color="gray" variant="soft">
-            <Link to={profilePath}>
+            <Link to={profileHref}>
               <ArrowLeft aria-hidden="true" size={18} />
               Back to Profile
             </Link>
@@ -253,8 +273,8 @@ function CenterStudentDirectory() {
             <Link className="w-fit rounded-md text-base font-bold text-doe-blue underline underline-offset-4 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-blue-200" to={`/students/${student.id}`}>
               {student.name}
             </Link>
-            <div className="text-sm font-semibold text-slate-700">{student.type}</div>
-            <div className="text-sm font-semibold text-slate-700">{student.graduationYear}</div>
+            <div className="text-sm font-semibold text-slate-700">{formatValue(student.type)}</div>
+            <div className="text-sm font-semibold text-slate-700">{formatValue(student.graduationYear)}</div>
             <AssessmentCountBadge value={student.assessmentCounts.lead} />
             <AssessmentCountBadge value={student.assessmentCounts.safety} />
             <AssessmentCountBadge value={student.assessmentCounts.other} />
@@ -268,8 +288,8 @@ function CenterStudentDirectory() {
   );
 }
 
-function CertificateStatus({ student }: { student: CenterStudent }) {
-  const hasCertificate = student.certificateStatus.toLowerCase() !== 'no certificate';
+function CertificateStatus({ portalStudent, student }: { portalStudent: PortalStudent; student: CenterStudent | StudentProfile }) {
+  const hasCertificate = Boolean(student.certificateStatus) && student.certificateStatus.toLowerCase() !== 'no certificate';
 
   if (hasCertificate) {
     return student.certificateStatus;
@@ -278,7 +298,7 @@ function CertificateStatus({ student }: { student: CenterStudent }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span>No certificate</span>
-      {student.id === getPortalStudent().id && (
+      {student.id === portalStudent.id && (
         <Button asChild color="blue" variant="soft">
           <Link to="/certificate-request">
             <FileQuestion aria-hidden="true" size={18} />
@@ -290,9 +310,9 @@ function CertificateStatus({ student }: { student: CenterStudent }) {
   );
 }
 
-function AssessmentPanel({ allowDownloads = false, student }: { allowDownloads?: boolean; student: CenterStudent }) {
+function AssessmentPanel({ allowDownloads = false, portalStudent, student }: { allowDownloads?: boolean; portalStudent: PortalStudent; student: CenterStudent | StudentProfile }) {
   const hasLeadAssessments = student.assessmentCounts.lead > 0;
-  const assessmentRecordsForStudent = getStudentAssessmentRecords(student);
+  const assessmentRecordsForStudent = getStudentAssessmentRecords(portalStudent, student);
   const assessmentTotalForStudent = getAssessmentTotal(student.assessmentCounts);
   const hasAssessments = assessmentTotalForStudent > 0;
 
@@ -354,15 +374,16 @@ function AssessmentPanel({ allowDownloads = false, student }: { allowDownloads?:
                 >
                   {assessment.id}
                 </a>
-                <p className="mt-1 text-base font-semibold text-slate-950">{assessment.date}</p>
+                <p className="mt-1 text-base font-semibold text-slate-950">{formatValue(assessment.date)}</p>
               </div>
-              <PersonPill name={assessment.facultyStaff} role={assessment.studentRole === 'Lead' ? 'Lead' : undefined} />
+              <PersonPill name={formatValue(assessment.facultyStaff)} role={assessment.studentRole === 'Lead' ? 'Lead' : undefined} />
               <div className="flex flex-wrap gap-2">
                 {assessment.participants.map((participant) => (
                   <PersonPill
-                    highlighted={participant.name === student.name}
-                    key={`${assessment.id}-${participant.name}`}
-                    muted={participant.name !== student.name}
+                    highlighted={String(participant.participantId) === student.id}
+                    imageSrc={participant.photoBase64}
+                    key={`${assessment.id}-${participant.participantId}`}
+                    muted={String(participant.participantId) !== student.id}
                     name={participant.name}
                     role={participant.role}
                   />
@@ -380,11 +401,13 @@ function AssessmentPanel({ allowDownloads = false, student }: { allowDownloads?:
 
 function PersonPill({
   highlighted = false,
+  imageSrc,
   muted = false,
   name,
   role,
 }: {
   highlighted?: boolean;
+  imageSrc?: string;
   muted?: boolean;
   name: string;
   role?: string;
@@ -394,7 +417,7 @@ function PersonPill({
   return (
     <div className={`inline-flex min-h-11 max-w-full items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold ${roleStyle.container}`}>
       <span className={`h-7 w-7 shrink-0 rounded-full ${highlighted || roleStyle.isColorCoded ? 'bg-white' : 'bg-slate-200'}`}>
-        <img className="h-full w-full rounded-full object-cover" src={highlighted ? profileImage : '/Docs/DOE_blue_seal_logo-head.png'} alt="" />
+        <ProfileImage className="h-full w-full rounded-full" imageSrc={highlighted ? imageSrc || '' : ''} label="" />
       </span>
       {role && <span className={`text-xs font-bold ${roleStyle.roleText}`}>{role}</span>}
       <span className={muted ? 'truncate text-slate-600' : 'truncate'}>{name}</span>
@@ -406,9 +429,29 @@ function ProfileRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <>
       <dt className="border-b border-slate-200 py-2.5 text-xs font-bold uppercase tracking-[0.04em] text-slate-500">{label}</dt>
-      <dd className="border-b border-slate-200 py-2.5 text-base text-slate-950">{value}</dd>
+      <dd className="border-b border-slate-200 py-2.5 text-base text-slate-950">{formatNode(value)}</dd>
     </>
   );
+}
+
+function ProfileImage({ className, imageSrc, label }: { className: string; imageSrc: string; label: string }) {
+  if (imageSrc) {
+    return <img className={`${className} object-cover`} src={imageSrc} alt={label} />;
+  }
+
+  return (
+    <span className={`${className} grid place-items-center bg-slate-100 text-slate-400`} aria-label={label || undefined} aria-hidden={!label}>
+      <User size={28} />
+    </span>
+  );
+}
+
+function formatValue(value: string | number | null | undefined) {
+  return value === null || value === undefined || String(value).trim() === '' ? '-' : String(value);
+}
+
+function formatNode(value: ReactNode) {
+  return typeof value === 'string' || typeof value === 'number' ? formatValue(value) : value;
 }
 
 function StudentStatusBadge({ compact = false, status }: { compact?: boolean; status: string }) {
@@ -441,13 +484,11 @@ function AssessmentCountBadge({ value }: { value: number }) {
   return <span className="inline-flex h-8 w-10 items-center justify-center rounded-md bg-slate-100 text-sm font-bold text-slate-800">{value}</span>;
 }
 
-function getCurrentCenterStudent() {
-  const portalStudent = getPortalStudent();
-  return portalStudent.centerStudents.find((student) => student.id === portalStudent.id) ?? portalStudent.centerStudents[0];
+function getCurrentCenterStudent(portalStudent: PortalStudent) {
+  return portalStudent.centerStudents.find((student) => student.id === portalStudent.id) ?? portalStudent;
 }
 
-function getVisibleCenterStudents() {
-  const portalStudent = getPortalStudent();
+function getVisibleCenterStudents(portalStudent: PortalStudent) {
   return portalStudent.centerStudents.filter((student) => student.id !== portalStudent.id);
 }
 
@@ -455,44 +496,12 @@ function getAssessmentTotal(counts: { lead: number; safety: number; other: numbe
   return counts.lead + counts.safety + counts.other;
 }
 
-function getStudentAssessmentRecords(student: CenterStudent) {
-  const portalStudent = getPortalStudent();
-
-  if (student.id === portalStudent.id) {
-    return portalStudent.assessments;
+function getStudentAssessmentRecords(portalStudent: PortalStudent, student: CenterStudent | StudentProfile) {
+  if ('assessments' in student) {
+    return student.assessments;
   }
 
-  const counts = student.assessmentCounts;
-  const records = [
-    {
-      id: `AS${student.id}`,
-      date: '05/14/2026',
-      facultyStaff: portalStudent.facultyStaff || 'Dr. Patrick Phelan',
-      studentRole: counts.lead > 0 ? 'Lead' : counts.safety > 0 ? 'Safety' : 'Other',
-      participants: [
-        { name: student.name, role: counts.lead > 0 ? 'Lead' : counts.safety > 0 ? 'Safety' : 'Other' },
-        { name: 'Ariana Patel', role: 'Other' },
-        { name: 'Nina Chen', role: 'Safety' },
-      ],
-    },
-    {
-      id: `AS${Number(student.id) + 40}`,
-      date: '03/22/2026',
-      facultyStaff: 'Dr. Ryan Milcarek',
-      studentRole: counts.safety > 1 ? 'Safety' : 'Other',
-      participants: [
-        { name: 'Priya Shah', role: 'Lead' },
-        { name: student.name, role: counts.safety > 1 ? 'Safety' : 'Other' },
-        { name: 'Diego Martinez', role: 'Other' },
-      ],
-    },
-  ];
-
-  return records.slice(0, Math.max(1, Math.min(2, getAssessmentTotal(counts))));
-}
-
-function getPortalStudent() {
-  return AuthServiceApi.getStoredStudentProfile<typeof demoStudent>() || demoStudent;
+  return student.id === portalStudent.id ? portalStudent.assessments : [];
 }
 
 function getRoleStyle(role?: string, highlighted = false) {

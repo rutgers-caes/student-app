@@ -5,7 +5,7 @@ import { CircleHelp, ClipboardList, LogIn } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AboutStudentPortalModal } from '@/components/AboutStudentPortalModal';
 import { AuthServiceApi } from '@/services/auth-service';
-import { profilePath } from '@/data/navigation';
+import { profilePath, studentProfilePath } from '@/data/navigation';
 
 export default function LoginPage() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -25,7 +25,8 @@ export default function LoginPage() {
       if (result.temporaryPasswordRequired) {
         setStatusMessage('Temporary password accepted. Please update your password from Edit Profile after login.');
       }
-      navigate(profilePath);
+      const student = result.student as { name?: string };
+      navigate(student.name ? studentProfilePath(student.name) : profilePath);
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Unable to log in.');
     } finally {
