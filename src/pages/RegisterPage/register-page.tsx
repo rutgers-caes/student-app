@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AuthServiceApi } from '@/services/auth-service';
 
 const supportEmail = 'students@iac.university';
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -16,9 +17,12 @@ export default function RegisterPage() {
   const [statusMessage, setStatusMessage] = useState('');
   const [isRegisterAllowed, setIsRegisterAllowed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const emailIsValid = emailPattern.test(email.trim());
 
   const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!emailIsValid) return;
+
     setIsSubmitting(true);
     setStatusMessage('');
     setIsRegisterAllowed(false);
@@ -121,7 +125,7 @@ export default function RegisterPage() {
                 </label>
 
                 <div className="mb-2 ml-[90px] mt-1 flex flex-wrap items-center justify-center gap-3 max-sm:ml-0">
-                  <Button type="submit" disabled={isSubmitting}>
+                  <Button type="submit" disabled={isSubmitting || !emailIsValid}>
                     <Send aria-hidden="true" size={19} />
                     {isSubmitting ? 'Checking' : 'Request Registration'}
                   </Button>
