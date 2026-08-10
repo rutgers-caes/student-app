@@ -5,6 +5,7 @@ import { Badge, Button } from '@radix-ui/themes';
 import { ArrowLeft, Camera, Download, Edit3, ExternalLink, FileQuestion, ListChecks, Mail, ShieldCheck, Users } from 'lucide-react';
 import { demoStudent, profileImage } from '@/data/demo-student';
 import { profilePath } from '@/data/navigation';
+import { AuthServiceApi } from '@/services/auth-service';
 
 type CenterStudent = (typeof demoStudent.centerStudents)[number];
 
@@ -24,9 +25,10 @@ export function StudentProfileView() {
 
 export function PeerStudentProfilePage() {
   const { studentId } = useParams();
-  const student = demoStudent.centerStudents.find((centerStudent) => centerStudent.id === studentId);
+  const portalStudent = getPortalStudent();
+  const student = portalStudent.centerStudents.find((centerStudent) => centerStudent.id === studentId);
 
-  if (!student || student.id === demoStudent.id) {
+  if (!student || student.id === portalStudent.id) {
     return <Navigate to={profilePath} replace />;
   }
 
@@ -50,8 +52,9 @@ export function CenterStudentsPage() {
 
 function StudentProfileCard({ mode, student }: { mode: 'self' | 'peer'; student: CenterStudent }) {
   const [uploadedProfileImage, setUploadedProfileImage] = useState('');
+  const portalStudent = getPortalStudent();
   const assessmentTotalForStudent = getAssessmentTotal(student.assessmentCounts);
-  const studentProfileImage = uploadedProfileImage || (student.id === demoStudent.id ? profileImage : '/Docs/DOE_blue_seal_logo-head.png');
+  const studentProfileImage = uploadedProfileImage || (student.id === portalStudent.id ? portalStudent.photoBase64 || profileImage : `${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo-head.png`);
 
   function handleProfilePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -202,6 +205,7 @@ function ProfileHeaderActions({ mode, student }: { mode: 'self' | 'peer'; studen
 
 function CenterStudentDirectory() {
   const centerStudents = getVisibleCenterStudents();
+  const portalStudent = getPortalStudent();
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -211,7 +215,7 @@ function CenterStudentDirectory() {
             <Users aria-hidden="true" size={24} />
             List of All Center Students
           </h1>
-          <p className="mt-1 text-sm font-semibold text-slate-500">{demoStudent.center} students only</p>
+          <p className="mt-1 text-sm font-semibold text-slate-500">{portalStudent.center} students only</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Badge color="blue" size="2" variant="soft">
@@ -274,7 +278,7 @@ function CertificateStatus({ student }: { student: CenterStudent }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span>No certificate</span>
-      {student.id === demoStudent.id && (
+      {student.id === getPortalStudent().id && (
         <Button asChild color="blue" variant="soft">
           <Link to="/certificate-request">
             <FileQuestion aria-hidden="true" size={18} />
@@ -438,11 +442,13 @@ function AssessmentCountBadge({ value }: { value: number }) {
 }
 
 function getCurrentCenterStudent() {
-  return demoStudent.centerStudents.find((student) => student.id === demoStudent.id) ?? demoStudent.centerStudents[0];
+  const portalStudent = getPortalStudent();
+  return portalStudent.centerStudents.find((student) => student.id === portalStudent.id) ?? portalStudent.centerStudents[0];
 }
 
 function getVisibleCenterStudents() {
-  return demoStudent.centerStudents.filter((student) => student.id !== demoStudent.id);
+  const portalStudent = getPortalStudent();
+  return portalStudent.centerStudents.filter((student) => student.id !== portalStudent.id);
 }
 
 function getAssessmentTotal(counts: { lead: number; safety: number; other: number }) {
@@ -450,8 +456,10 @@ function getAssessmentTotal(counts: { lead: number; safety: number; other: numbe
 }
 
 function getStudentAssessmentRecords(student: CenterStudent) {
-  if (student.id === demoStudent.id) {
-    return demoStudent.assessments;
+  const portalStudent = getPortalStudent();
+
+  if (student.id === portalStudent.id) {
+    return portalStudent.assessments;
   }
 
   const counts = student.assessmentCounts;
@@ -459,7 +467,7 @@ function getStudentAssessmentRecords(student: CenterStudent) {
     {
       id: `AS${student.id}`,
       date: '05/14/2026',
-      facultyStaff: demoStudent.facultyStaff || 'Dr. Patrick Phelan',
+      facultyStaff: portalStudent.facultyStaff || 'Dr. Patrick Phelan',
       studentRole: counts.lead > 0 ? 'Lead' : counts.safety > 0 ? 'Safety' : 'Other',
       participants: [
         { name: student.name, role: counts.lead > 0 ? 'Lead' : counts.safety > 0 ? 'Safety' : 'Other' },
@@ -481,6 +489,10 @@ function getStudentAssessmentRecords(student: CenterStudent) {
   ];
 
   return records.slice(0, Math.max(1, Math.min(2, getAssessmentTotal(counts))));
+}
+
+function getPortalStudent() {
+  return AuthServiceApi.getStoredStudentProfile<typeof demoStudent>() || demoStudent;
 }
 
 function getRoleStyle(role?: string, highlighted = false) {

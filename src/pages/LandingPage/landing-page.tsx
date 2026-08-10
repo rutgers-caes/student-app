@@ -7,6 +7,7 @@ import { CenterStudentsPage, PeerStudentProfilePage, StudentProfileView } from '
 import { centers } from '@/data/CenterBranding';
 import { demoStudent, profileImage } from '@/data/demo-student';
 import { profilePath } from '@/data/navigation';
+import { AuthServiceApi } from '@/services/auth-service';
 
 type LandingPageProps = {
   view?: 'profile' | 'edit' | 'center-students' | 'student-profile';
@@ -29,6 +30,7 @@ const initialProfileForm = {
 };
 
 export default function LandingPage({ view = 'profile' }: LandingPageProps) {
+  const portalStudent = AuthServiceApi.getStoredStudentProfile<typeof demoStudent>() || demoStudent;
   const [form, setForm] = useState(initialProfileForm);
   const [savedMessage, setSavedMessage] = useState('');
 
@@ -87,7 +89,7 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
 
   return (
     <div className="min-h-screen bg-[#f4f7fb]">
-      <AppNavbar firstName={demoStudent.firstName} profileImage={profileImage} />
+      <AppNavbar firstName={portalStudent.firstName} profileImage={portalStudent.photoBase64 || profileImage} />
       {view === 'edit' ? (
         <EditProfileView
           form={form}
@@ -105,12 +107,12 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
         <CenterStudentsPage />
       ) : view === 'student-profile' ? (
         <>
-          <CenterBrandingBanner />
+          <CenterBrandingBanner student={portalStudent} />
           <PeerStudentProfilePage />
         </>
       ) : (
         <>
-          <CenterBrandingBanner />
+          <CenterBrandingBanner student={portalStudent} />
           <StudentProfileView />
         </>
       )}
@@ -118,12 +120,12 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
   );
 }
 
-function CenterBrandingBanner() {
-  const centerCode = demoStudent.centerCode.split('-')[0];
+function CenterBrandingBanner({ student }: { student: typeof demoStudent }) {
+  const centerCode = student.centerCode.split('-')[0];
   const center = centers.find((centerOption) => centerOption.code === centerCode);
   const primaryColor = center?.colors[0] || '#607aa8';
   const accentColor = center?.colors[1] || '#ffffff';
-  const centerName = center?.name || demoStudent.center.split('|')[1]?.trim() || demoStudent.center;
+  const centerName = center?.name || student.center.split('|')[1]?.trim() || student.center;
 
   return (
     <section className="border-b border-slate-200" style={{ backgroundColor: primaryColor }}>
@@ -142,7 +144,7 @@ function CenterBrandingBanner() {
           </div>
         </div>
         <div className="rounded-lg border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
-          {demoStudent.centerCode}
+          {student.centerCode}
         </div>
       </div>
     </section>

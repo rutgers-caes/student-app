@@ -3,16 +3,31 @@ import type { FormEvent } from 'react';
 import { Button, TextField } from '@radix-ui/themes';
 import { LogIn, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { AuthServiceApi } from '@/services/auth-service';
 
 const supportEmail = 'students@iac.university';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
-  const [submittedEmail, setSubmittedEmail] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmittedEmail(email.trim());
+    setIsSubmitting(true);
+    setStatusMessage('');
+    setTemporaryPassword('');
+
+    try {
+      const result = await AuthServiceApi.requestRegistration(email.trim());
+      setStatusMessage(result.message);
+      setTemporaryPassword(result.temporaryPassword || '');
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Unable to request registration.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -75,16 +90,21 @@ export default function RegisterPage() {
                 </label>
 
                 <div className="mb-2 ml-[90px] mt-1 flex flex-wrap items-center justify-center gap-3 max-sm:ml-0">
-                  <Button type="submit">
+                  <Button type="submit" disabled={isSubmitting}>
                     <Send aria-hidden="true" size={19} />
-                    Request Registration
+                    {isSubmitting ? 'Checking' : 'Request Registration'}
                   </Button>
                 </div>
               </form>
 
-              {submittedEmail && (
+              {statusMessage && (
                 <div className="mt-4 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-center text-[15px] leading-6 text-slate-800" role="status">
-                  If <strong>{submittedEmail}</strong> is on the approved ITAC student list, a registration email will be sent with next steps.
+                  {statusMessage}
+                  {temporaryPassword && (
+                    <p className="mt-2 font-semibold">
+                      Local temporary password: <span className="font-mono">{temporaryPassword}</span>
+                    </p>
+                  )}
                 </div>
               )}
             </div>
