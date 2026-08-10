@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Select, TextField } from '@radix-ui/themes';
 import { ArrowLeft, CheckCircle2, Circle, Save } from 'lucide-react';
 import { AppNavbar } from '@/components/AppNavbar';
-import { CenterStudentsPage, PeerStudentProfilePage, StudentProfileView } from '@/pages/CenterStudentsPage/center-students-page';
+import { CenterStudentsPage, PeerStudentProfilePage, StudentProfileView } from '@/pages/CenterStudentsPage';
 import { centers } from '@/data/CenterBranding';
 import { profilePath, studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
@@ -19,10 +19,11 @@ type TextInputAutoComplete = 'email' | 'new-password' | 'off';
 
 
 export default function LandingPage({ view = 'profile' }: LandingPageProps) {
-  const [portalStudent, setPortalStudent] = useState<StudentProfile | null>(() => AuthServiceApi.getStoredStudentProfile<StudentProfile>());
+  const [portalStudent, setPortalStudent] = useState<StudentProfile | null>(null);
   const [form, setForm] = useState(() => buildProfileForm(portalStudent));
   const [savedMessage, setSavedMessage] = useState('');
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [isSaving, setIsSaving] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const profileHref = portalStudent ? studentProfilePath(portalStudent.name) : profilePath;
@@ -83,7 +84,7 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requiredComplete) {
       setSavedMessage('Please complete all required fields before saving.');
@@ -101,7 +102,18 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
       setSavedMessage('Make a change before saving.');
       return;
     }
-    setSavedMessage('Profile saved for demo.');
+
+    setIsSaving(true);
+    try {
+      const updatedProfile = await AuthServiceApi.updateMyProfile<StudentProfile>(buildProfileUpdatePayload(form, initialFormForStudent));
+      setPortalStudent(updatedProfile);
+      setForm(buildProfileForm(updatedProfile));
+      setSavedMessage(passwordStarted ? 'Profile and password updated.' : 'Profile updated.');
+    } catch (error) {
+      setSavedMessage(error instanceof Error ? error.message : 'Unable to update profile.');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -116,7 +128,7 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
           form={form}
           onSubmit={handleSubmit}
           onUpdate={updateField}
-          canSave={canSave}
+          canSave={canSave && !isSaving}
           confirmPasswordMatches={confirmPasswordMatches}
           emailsAreDifferent={emailsAreDifferent}
           passwordRules={passwordRules}
@@ -124,9 +136,13 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
           profileHref={profileHref}
           savedMessage={savedMessage}
           showGraduateType={showGraduateType}
+          isSaving={isSaving}
         />
       ) : view === 'center-students' ? (
-        <CenterStudentsPage portalStudent={portalStudent} />
+        <>
+          <CenterBrandingBanner student={portalStudent} />
+          <CenterStudentsPage portalStudent={portalStudent} />
+        </>
       ) : view === 'student-profile' ? (
         <>
           <CenterBrandingBanner student={portalStudent} />
@@ -158,6 +174,32 @@ function buildProfileForm(student: StudentProfile | null) {
   };
 }
 
+function buildProfileUpdatePayload(form: Record<string, string>, initialForm: Record<string, string>) {
+  const updateFields = [
+    'email',
+    'alternateEmail',
+    'studentType',
+    'major',
+    'programStartDate',
+    'classStanding',
+    'linkedin',
+    'graduationYear',
+  ];
+
+  const payload: Record<string, string> = {};
+  for (const field of updateFields) {
+    if (form[field] !== initialForm[field]) {
+      payload[field] = form[field];
+    }
+  }
+
+  if (form.password) {
+    payload.password = form.password;
+  }
+
+  return payload;
+}
+
 function PageNotice({ message, tone = 'info' }: { message: string; tone?: 'info' | 'error' }) {
   return (
     <div className={tone === 'error' ? 'border-b border-red-100 bg-red-50 px-5 py-2 text-center text-sm font-semibold text-red-700' : 'border-b border-blue-100 bg-blue-50 px-5 py-2 text-center text-sm font-semibold text-blue-800'}>
@@ -170,20 +212,32 @@ function CenterBrandingBanner({ student }: { student: StudentProfile }) {
   const centerCode = student.centerCode.split('-')[0];
   const center = centers.find((centerOption) => centerOption.code === centerCode);
   const primaryColor = center?.colors[0] || '#607aa8';
-  const accentColor = center?.colors[1] || '#ffffff';
   const centerName = center?.name || student.center.split('|')[1]?.trim() || student.center;
+  const logoContent = center?.logos.main ? <img className="h-full w-full object-contain p-1" src={center.logos.main} alt="" /> : centerCode;
+  const logoClassName =
+    'flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/35 bg-white text-base font-black tracking-normal shadow-sm';
+  const website = center?.website.trim();
 
   return (
     <section className="border-b border-slate-200" style={{ backgroundColor: primaryColor }}>
       <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-3 px-5 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/35 bg-white/15 text-base font-black tracking-normal shadow-sm"
-            style={{ color: accentColor }}
-            aria-hidden="true"
-          >
-            {centerCode}
-          </div>
+          {website ? (
+            <a
+              className={`${logoClassName} transition hover:scale-[1.03] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-white/70`}
+              style={{ color: primaryColor }}
+              href={website}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Open ${centerName} website`}
+            >
+              {logoContent}
+            </a>
+          ) : (
+            <div className={logoClassName} style={{ color: primaryColor }} aria-hidden="true">
+              {logoContent}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/75">Center Affiliation</p>
             <h1 className="mt-0.5 text-[clamp(18px,2vw,24px)] font-semibold leading-tight tracking-normal text-white">{centerName}</h1>
@@ -209,6 +263,7 @@ function EditProfileView({
   profileHref,
   savedMessage,
   showGraduateType,
+  isSaving,
 }: {
   form: Record<string, string>;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -221,6 +276,7 @@ function EditProfileView({
   profileHref: string;
   savedMessage: string;
   showGraduateType: boolean;
+  isSaving: boolean;
 }) {
   return (
     <main className="mx-auto w-full max-w-[980px] px-5 py-8">
@@ -305,8 +361,8 @@ function EditProfileView({
             {savedMessage || 'Required fields are marked with an asterisk.'}
           </p>
           <Button color={canSave ? 'blue' : 'gray'} disabled={!canSave} size="3" type="submit">
-            {savedMessage === 'Profile saved for demo.' ? <CheckCircle2 aria-hidden="true" size={18} /> : <Save aria-hidden="true" size={18} />}
-            Save Profile
+            {savedMessage === 'Profile updated.' || savedMessage === 'Profile and password updated.' ? <CheckCircle2 aria-hidden="true" size={18} /> : <Save aria-hidden="true" size={18} />}
+            {isSaving ? 'Saving' : 'Save Profile'}
           </Button>
         </div>
       </form>

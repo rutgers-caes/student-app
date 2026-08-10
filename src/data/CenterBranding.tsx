@@ -1,5 +1,13 @@
 
-export const centers = [
+const centerLogoFiles: Record<string, string> = {
+  WV: 'WV.jpg',
+};
+
+function buildLogoPath(centerCode: string) {
+  return `${import.meta.env.BASE_URL}Docs/logo/${centerLogoFiles[centerCode] || `${centerCode}.png`}`;
+}
+
+const centerBranding = [
   {
     code: 'AM',
     name: 'Texas A&M, College Station',
@@ -225,3 +233,10 @@ export const centers = [
     website: '',
   },
 ];
+
+export const centers = centerBranding.map((center) => ({
+  ...center,
+  logos: {
+    main: buildLogoPath(center.code),
+  },
+}));

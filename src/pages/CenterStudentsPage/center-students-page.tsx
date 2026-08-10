@@ -6,6 +6,15 @@ import { ArrowLeft, Camera, Download, Edit3, ExternalLink, FileQuestion, ListChe
 import { profilePath, studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
 import type { CenterStudentProfile, StudentProfile } from '@/types/student-profile';
+import {
+  getAssessmentTotal,
+  getCurrentCenterStudent,
+  getFacultyStaffParticipants,
+  getRoleStyle,
+  getStudentAssessmentRecords,
+  getVisibleCenterStudents,
+  sortParticipantsByRole,
+} from './center-students-utils';
 
 type PortalStudent = StudentProfile;
 type CenterStudent = CenterStudentProfile;
@@ -120,7 +129,7 @@ function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | '
         </div>
       </section>
 
-      <section className="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
+      <section className="grid items-stretch gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mx-auto w-fit overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-2">
             <ProfileImage className="aspect-square w-[100px]" imageSrc={studentProfileImage} label={`${student.name} profile`} />
@@ -145,7 +154,7 @@ function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | '
               </h2>
             </div>
             <div className="px-3 pb-2 pt-3 text-xs font-bold uppercase tracking-[0.06em] text-slate-500">
-              # of Assessments Before Lead
+              {student.assessmentCounts.beforeLead} {student.assessmentCounts.beforeLead === 1 ? 'assessment' : 'assessments'} before lead
             </div>
             <div className="grid grid-cols-4 text-center">
               {[
@@ -163,13 +172,13 @@ function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | '
           </div>
         </aside>
 
-        <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <section className="flex h-full flex-col rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3">
-            <h2 className="text-2xl font-semibold text-slate-950">{student.name}</h2>
+            <h2 className="text-[clamp(32px,3vw,42px)] font-semibold leading-tight text-slate-950">{student.name}</h2>
             <ProfileHeaderActions mode={mode} student={student} />
           </div>
 
-          <dl className="grid grid-cols-1 px-5 py-1 md:grid-cols-[200px_minmax(0,1fr)]">
+          <dl className="grid flex-1 grid-cols-1 content-start px-5 py-1 md:grid-cols-[200px_minmax(0,1fr)]">
             <ProfileRow label="Student ID" value={student.id} />
             <ProfileRow label="Center" value={student.center} />
             <ProfileRow label="Student type" value={student.type} />
@@ -251,7 +260,7 @@ function CenterStudentDirectory({ portalStudent }: { portalStudent: PortalStuden
       </div>
 
       <div className="overflow-x-auto">
-        <div className="grid min-w-[940px] grid-cols-[90px_minmax(220px,1.3fr)_150px_120px_90px_90px_90px_120px] border-b border-slate-200 px-5 py-3 text-sm font-bold uppercase tracking-[0.04em] text-slate-500">
+        <div className="grid min-w-[1020px] grid-cols-[90px_minmax(180px,1fr)_150px_120px_90px_90px_90px_minmax(220px,1.2fr)] border-b border-slate-200 px-5 py-3 text-sm font-bold uppercase tracking-[0.04em] text-slate-500">
           <div>Role</div>
           <div>Name</div>
           <div>Type</div>
@@ -264,7 +273,7 @@ function CenterStudentDirectory({ portalStudent }: { portalStudent: PortalStuden
 
         {centerStudents.map((student, index) => (
           <div
-            className={`grid min-w-[940px] grid-cols-[90px_minmax(220px,1.3fr)_150px_120px_90px_90px_90px_120px] items-center border-b border-slate-200 px-5 py-4 last:border-b-0 ${
+            className={`grid min-w-[1020px] grid-cols-[90px_minmax(180px,1fr)_150px_120px_90px_90px_90px_minmax(220px,1.2fr)] items-center border-b border-slate-200 px-5 py-4 last:border-b-0 ${
               index % 2 === 0 ? 'bg-slate-50' : 'bg-white'
             }`}
             key={student.id}
@@ -278,8 +287,8 @@ function CenterStudentDirectory({ portalStudent }: { portalStudent: PortalStuden
             <AssessmentCountBadge value={student.assessmentCounts.lead} />
             <AssessmentCountBadge value={student.assessmentCounts.safety} />
             <AssessmentCountBadge value={student.assessmentCounts.other} />
-            <a className="text-sm font-semibold text-doe-blue underline underline-offset-4" href={`mailto:${student.email}`}>
-              Email
+            <a className="truncate text-sm font-semibold text-doe-blue underline underline-offset-4" href={`mailto:${student.email}`}>
+              {formatValue(student.email)}
             </a>
           </div>
         ))}
@@ -311,10 +320,20 @@ function CertificateStatus({ portalStudent, student }: { portalStudent: PortalSt
 }
 
 function AssessmentPanel({ allowDownloads = false, portalStudent, student }: { allowDownloads?: boolean; portalStudent: PortalStudent; student: CenterStudent | StudentProfile }) {
+  const [downloadMode, setDownloadMode] = useState<'all' | 'lead' | ''>('');
   const hasLeadAssessments = student.assessmentCounts.lead > 0;
   const assessmentRecordsForStudent = getStudentAssessmentRecords(portalStudent, student);
   const assessmentTotalForStudent = getAssessmentTotal(student.assessmentCounts);
   const hasAssessments = assessmentTotalForStudent > 0;
+
+  async function handleDownload(mode: 'all' | 'lead') {
+    setDownloadMode(mode);
+    try {
+      await AuthServiceApi.downloadMyAssessments(mode);
+    } finally {
+      setDownloadMode('');
+    }
+  }
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -333,18 +352,18 @@ function AssessmentPanel({ allowDownloads = false, portalStudent, student }: { a
           <div className="text-left sm:text-center">
             <p className="mb-2 text-base font-bold text-slate-800">Download Student Related Metrics</p>
             <div className="flex flex-wrap gap-2 sm:justify-center">
-              <Button type="button" color="blue" onClick={() => alert('Placeholder: download all assessments')}>
+              <Button type="button" color="blue" disabled={Boolean(downloadMode)} onClick={() => handleDownload('all')}>
                 <Download aria-hidden="true" size={17} />
-                All Assessments
+                {downloadMode === 'all' ? 'Downloading' : 'All Assessments'}
               </Button>
               <Button
                 type="button"
                 color="blue"
-                disabled={!hasLeadAssessments}
-                onClick={() => alert('Placeholder: download assessments where student is lead')}
+                disabled={!hasLeadAssessments || Boolean(downloadMode)}
+                onClick={() => handleDownload('lead')}
               >
                 <Download aria-hidden="true" size={17} />
-                As Lead
+                {downloadMode === 'lead' ? 'Downloading' : 'As Lead'}
               </Button>
             </div>
           </div>
@@ -376,9 +395,13 @@ function AssessmentPanel({ allowDownloads = false, portalStudent, student }: { a
                 </a>
                 <p className="mt-1 text-base font-semibold text-slate-950">{formatValue(assessment.date)}</p>
               </div>
-              <PersonPill name={formatValue(assessment.facultyStaff)} role={assessment.studentRole === 'Lead' ? 'Lead' : undefined} />
+              <div className="flex flex-col gap-2">
+                {getFacultyStaffParticipants(assessment).map((facultyStaff) => (
+                  <PersonPill key={`${assessment.id}-${facultyStaff.participantId}-${facultyStaff.name}`} name={facultyStaff.name} role={facultyStaff.role} />
+                ))}
+              </div>
               <div className="flex flex-wrap gap-2">
-                {assessment.participants.map((participant) => (
+                {sortParticipantsByRole(assessment.participants).map((participant) => (
                   <PersonPill
                     highlighted={String(participant.participantId) === student.id}
                     imageSrc={participant.photoBase64}
@@ -417,7 +440,7 @@ function PersonPill({
   return (
     <div className={`inline-flex min-h-11 max-w-full items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold ${roleStyle.container}`}>
       <span className={`h-7 w-7 shrink-0 rounded-full ${highlighted || roleStyle.isColorCoded ? 'bg-white' : 'bg-slate-200'}`}>
-        <ProfileImage className="h-full w-full rounded-full" imageSrc={highlighted ? imageSrc || '' : ''} label="" />
+        <ProfileImage className="h-full w-full rounded-full" imageSrc={imageSrc || ''} label="" />
       </span>
       {role && <span className={`text-xs font-bold ${roleStyle.roleText}`}>{role}</span>}
       <span className={muted ? 'truncate text-slate-600' : 'truncate'}>{name}</span>
@@ -428,8 +451,8 @@ function PersonPill({
 function ProfileRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <>
-      <dt className="border-b border-slate-200 py-2.5 text-xs font-bold uppercase tracking-[0.04em] text-slate-500">{label}</dt>
-      <dd className="border-b border-slate-200 py-2.5 text-base text-slate-950">{formatNode(value)}</dd>
+      <dt className="flex min-h-14 items-center border-b border-slate-200 py-2.5 text-xs font-bold uppercase tracking-[0.04em] text-slate-500">{label}</dt>
+      <dd className="flex min-h-14 items-center border-b border-slate-200 py-2.5 text-base text-slate-950">{formatNode(value)}</dd>
     </>
   );
 }
@@ -482,58 +505,4 @@ function StudentStatusDot({ status }: { status: string }) {
 
 function AssessmentCountBadge({ value }: { value: number }) {
   return <span className="inline-flex h-8 w-10 items-center justify-center rounded-md bg-slate-100 text-sm font-bold text-slate-800">{value}</span>;
-}
-
-function getCurrentCenterStudent(portalStudent: PortalStudent) {
-  return portalStudent.centerStudents.find((student) => student.id === portalStudent.id) ?? portalStudent;
-}
-
-function getVisibleCenterStudents(portalStudent: PortalStudent) {
-  return portalStudent.centerStudents.filter((student) => student.id !== portalStudent.id);
-}
-
-function getAssessmentTotal(counts: { lead: number; safety: number; other: number }) {
-  return counts.lead + counts.safety + counts.other;
-}
-
-function getStudentAssessmentRecords(portalStudent: PortalStudent, student: CenterStudent | StudentProfile) {
-  if ('assessments' in student) {
-    return student.assessments;
-  }
-
-  return student.id === portalStudent.id ? portalStudent.assessments : [];
-}
-
-function getRoleStyle(role?: string, highlighted = false) {
-  const highlightBorder = highlighted ? ' border-black ring-1 ring-black' : '';
-
-  if (role === 'Lead') {
-    return {
-      container: `border-green-300 bg-green-100 text-green-950${highlightBorder}`,
-      isColorCoded: true,
-      roleText: 'text-green-700',
-    };
-  }
-
-  if (role === 'Safety') {
-    return {
-      container: `border-yellow-300 bg-yellow-100 text-yellow-950${highlightBorder}`,
-      isColorCoded: true,
-      roleText: 'text-yellow-700',
-    };
-  }
-
-  if (role === 'Other') {
-    return {
-      container: `border-sky-300 bg-sky-100 text-sky-950${highlightBorder}`,
-      isColorCoded: true,
-      roleText: 'text-sky-700',
-    };
-  }
-
-  return {
-    container: highlighted ? 'border-black bg-white text-slate-950 ring-1 ring-black' : 'border-slate-300 bg-white text-slate-700',
-    isColorCoded: false,
-    roleText: 'text-slate-400',
-  };
 }
