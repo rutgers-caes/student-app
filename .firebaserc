@@ -1,6 +1,6 @@
 {
   "projects": {
-    "itacap-app": "pi-muller-soe-doe-itac-program"
+    "student-app": "pi-muller-soe-doe-itac-program"
   },
   "targets": {
     "pi-muller-soe-doe-itac-program": {
