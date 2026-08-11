@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LogOut, Menu, User, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { navItems, profilePath } from '@/data/navigation';
+import { getNavItems, profilePath } from '@/data/navigation';
+import type { NavItem } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
 
 type AppNavbarProps = {
@@ -12,19 +13,41 @@ type AppNavbarProps = {
 
 export function AppNavbar({ firstName = 'Student', profileHref = profilePath, profileImage = '' }: AppNavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [jobPostingCount, setJobPostingCount] = useState<number>();
+  const navItems = useMemo(() => getNavItems(jobPostingCount), [jobPostingCount]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    AuthServiceApi.getPublicJobPostingCount()
+      .then((count) => {
+        if (isMounted && Number.isFinite(count)) {
+          setJobPostingCount(count);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setJobPostingCount(undefined);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <header className="bg-primary px-5 text-primary-text shadow-[0_2px_10px_rgb(20_30_44_/_18%)]">
       <div className="grid min-h-[76px] grid-cols-[minmax(220px,1fr)_auto_minmax(220px,1fr)] items-center gap-6 max-xl:grid-cols-[1fr_auto]">
         <Link className="inline-flex min-w-0 items-center justify-self-start no-underline" to={profileHref} aria-label="U.S. Department of Energy student portal">
-          <img className="block w-[65px] shrink-0 max-sm:w-[56px]" src="/Docs/DOE_blue_seal_logo-head.png" alt="U.S. Department of Energy" />
-          <span className="ml-3 text-l font-semibold tracking-tight max-sm:text-base">ITAC Student and Alumni Portal</span>
+          <img className="block w-[48px] shrink-0 max-sm:w-[40px]" src="/Docs/DOE_blue_seal_logo-head.png" alt="U.S. Department of Energy" />
+          <span className="ml-3 whitespace-nowrap text-base font-bold leading-tight tracking-normal max-sm:text-sm">ITAC Student and Alumni Portal</span>
         </Link>
 
         <nav className="flex items-center justify-center gap-2 max-xl:hidden" aria-label="Primary navigation">
           {navItems.map((item) => (
             <NavItemLink
-              className="rounded-md px-3.5 py-2.5 text-base font-semibold text-white no-underline hover:bg-white/15 focus-visible:bg-white/15 focus-visible:outline-none"
+              className="rounded-md border border-white/35 bg-white/12 px-3.5 py-2.5 text-base font-bold text-white no-underline shadow-sm transition hover:border-white/70 hover:bg-white/22 focus-visible:bg-white/22 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-white/60"
               item={item}
               key={item.label}
             />
@@ -65,7 +88,7 @@ export function AppNavbar({ firstName = 'Student', profileHref = profilePath, pr
           <nav className="grid gap-2" aria-label="Mobile navigation">
             {navItems.map((item) => (
               <NavItemLink
-                className="rounded-md px-3.5 py-3 text-base font-semibold text-white no-underline hover:bg-white/15 focus-visible:bg-white/15 focus-visible:outline-none"
+                className="rounded-md border border-white/30 bg-white/10 px-3.5 py-3 text-base font-bold text-white no-underline hover:bg-white/18 focus-visible:bg-white/18 focus-visible:outline-none"
                 item={item}
                 key={item.label}
                 onClick={() => setIsMenuOpen(false)}
@@ -118,7 +141,7 @@ function NavItemLink({
   onClick,
 }: {
   className: string;
-  item: (typeof navItems)[number];
+  item: NavItem;
   onClick?: () => void;
 }) {
   if (item.external || item.href.startsWith('mailto:')) {

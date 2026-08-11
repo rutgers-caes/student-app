@@ -1,10 +1,10 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Select, TextField } from '@radix-ui/themes';
-import { ArrowLeft, CheckCircle2, Circle, Save } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Circle, Edit3, Save } from 'lucide-react';
 import { AppNavbar } from '@/components/AppNavbar';
-import { CenterStudentsPage, PeerStudentProfilePage, StudentProfileView } from '@/pages/CenterStudentsPage';
-import { centers } from '@/data/CenterBranding';
+import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
+import { CenterStudentsPage, PeerStudentProfilePage, StudentProfileView, StudentStatusBadge } from '@/pages/CenterStudentsPage';
 import { profilePath, studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
 import type { StudentProfile } from '@/types/student-profile';
@@ -144,13 +144,23 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
           <CenterStudentsPage portalStudent={portalStudent} />
         </>
       ) : view === 'student-profile' ? (
-        <>
-          <CenterBrandingBanner student={portalStudent} />
-          <PeerStudentProfilePage portalStudent={portalStudent} />
-        </>
+        <PeerStudentProfilePage portalStudent={portalStudent} />
       ) : (
         <>
-          <CenterBrandingBanner student={portalStudent} />
+          <CenterBrandingBanner
+            actions={
+              <>
+                <StudentStatusBadge status={portalStudent.status} />
+                <Button asChild className="!bg-white !text-slate-950 hover:!bg-white/90" size="3">
+                  <Link to="/edit-profile">
+                    <Edit3 aria-hidden="true" size={18} />
+                    Edit Profile
+                  </Link>
+                </Button>
+              </>
+            }
+            student={portalStudent}
+          />
           <StudentProfileView portalStudent={portalStudent} />
         </>
       )}
@@ -205,49 +215,6 @@ function PageNotice({ message, tone = 'info' }: { message: string; tone?: 'info'
     <div className={tone === 'error' ? 'border-b border-red-100 bg-red-50 px-5 py-2 text-center text-sm font-semibold text-red-700' : 'border-b border-blue-100 bg-blue-50 px-5 py-2 text-center text-sm font-semibold text-blue-800'}>
       {message}
     </div>
-  );
-}
-
-function CenterBrandingBanner({ student }: { student: StudentProfile }) {
-  const centerCode = student.centerCode.split('-')[0];
-  const center = centers.find((centerOption) => centerOption.code === centerCode);
-  const primaryColor = center?.colors[0] || '#607aa8';
-  const centerName = center?.name || student.center.split('|')[1]?.trim() || student.center;
-  const logoContent = center?.logos.main ? <img className="h-full w-full object-contain p-1" src={center.logos.main} alt="" /> : centerCode;
-  const logoClassName =
-    'flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/35 bg-white text-base font-black tracking-normal shadow-sm';
-  const website = center?.website.trim();
-
-  return (
-    <section className="border-b border-slate-200" style={{ backgroundColor: primaryColor }}>
-      <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-3 px-5 py-3">
-        <div className="flex min-w-0 items-center gap-3">
-          {website ? (
-            <a
-              className={`${logoClassName} transition hover:scale-[1.03] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-white/70`}
-              style={{ color: primaryColor }}
-              href={website}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Open ${centerName} website`}
-            >
-              {logoContent}
-            </a>
-          ) : (
-            <div className={logoClassName} style={{ color: primaryColor }} aria-hidden="true">
-              {logoContent}
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/75">Center Affiliation</p>
-            <h1 className="mt-0.5 text-[clamp(18px,2vw,24px)] font-semibold leading-tight tracking-normal text-white">{centerName}</h1>
-          </div>
-        </div>
-        <div className="rounded-lg border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
-          {student.centerCode}
-        </div>
-      </div>
-    </section>
   );
 }
 

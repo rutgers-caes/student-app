@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
-import { ArrowLeft, Camera, Download, Edit3, ExternalLink, FileQuestion, ListChecks, Mail, ShieldCheck, User, Users } from 'lucide-react';
+import { ArrowLeft, Camera, Download, ExternalLink, FileQuestion, ListChecks, Mail, ShieldCheck, User, Users } from 'lucide-react';
+import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
 import { profilePath, studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
 import type { CenterStudentProfile, StudentProfile } from '@/types/student-profile';
@@ -63,12 +64,28 @@ export function PeerStudentProfilePage({ portalStudent }: { portalStudent: Porta
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-      <StudentProfileCard portalStudent={portalStudent} student={student} mode="peer" />
-      <div className="mt-6">
-        <AssessmentPanel portalStudent={portalStudent} student={student} />
-      </div>
-    </main>
+    <>
+      <CenterBrandingBanner
+        actions={
+          <>
+            <StudentStatusBadge status={student.status} />
+            <Button asChild className="!bg-white !text-slate-950 hover:!bg-white/90" size="3">
+              <Link to="/center-students">
+                <ArrowLeft aria-hidden="true" size={18} />
+                Back to Center Students
+              </Link>
+            </Button>
+          </>
+        }
+        student={student}
+      />
+      <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
+        <StudentProfileCard portalStudent={portalStudent} student={student} mode="peer" />
+        <div className="mt-6">
+          <AssessmentPanel portalStudent={portalStudent} student={student} />
+        </div>
+      </main>
+    </>
   );
 }
 
@@ -105,30 +122,6 @@ function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | '
 
   return (
     <>
-      <section className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          {mode === 'peer' && <p className="mt-1 text-sm font-semibold text-slate-600">Center student profile</p>}
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <StudentStatusBadge status={student.status} />
-          {mode === 'self' ? (
-            <Button asChild color="blue" size="3">
-              <Link to="/edit-profile">
-                <Edit3 aria-hidden="true" size={18} />
-                Edit Profile
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild color="gray" variant="soft">
-              <Link to="/center-students">
-                <ArrowLeft aria-hidden="true" size={18} />
-                Back to Center Students
-              </Link>
-            </Button>
-          )}
-        </div>
-      </section>
-
       <section className="grid items-stretch gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mx-auto w-fit overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-2">
@@ -181,8 +174,8 @@ function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | '
           <dl className="grid flex-1 grid-cols-1 content-start px-5 py-1 md:grid-cols-[200px_minmax(0,1fr)]">
             <ProfileRow label="Student ID" value={student.id} />
             <ProfileRow label="Center" value={student.center} />
+            <ProfileRow label="Satellite" value={getSatelliteCenter(student.centerCode)} />
             <ProfileRow label="Student type" value={student.type} />
-            <ProfileRow label="Student role" value={<StudentStatusBadge status={student.status} compact />} />
             <ProfileRow label="ITAC Student Certificate" value={<CertificateStatus portalStudent={portalStudent} student={student} />} />
             <ProfileRow label="Time in ITAC" value={student.timeInItac} />
             {mode === 'peer' && (
@@ -306,7 +299,7 @@ function CertificateStatus({ portalStudent, student }: { portalStudent: PortalSt
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <span>No certificate</span>
+      <span>-</span>
       {student.id === portalStudent.id && (
         <Button asChild color="blue" variant="soft">
           <Link to="/certificate-request">
@@ -477,7 +470,11 @@ function formatNode(value: ReactNode) {
   return typeof value === 'string' || typeof value === 'number' ? formatValue(value) : value;
 }
 
-function StudentStatusBadge({ compact = false, status }: { compact?: boolean; status: string }) {
+function getSatelliteCenter(centerCode: string) {
+  return centerCode.split('-')[1]?.trim() || '-';
+}
+
+export function StudentStatusBadge({ compact = false, status }: { compact?: boolean; status: string }) {
   const isActive = status.toLowerCase() === 'active';
 
   return (

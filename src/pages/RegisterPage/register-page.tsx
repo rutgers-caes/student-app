@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button, TextField } from '@radix-ui/themes';
-import { Check, LogIn, Send } from 'lucide-react';
+import { Check, CheckCircle2, Circle, LogIn, Send } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthServiceApi } from '@/services/auth-service';
 
@@ -18,6 +18,14 @@ export default function RegisterPage() {
   const [isRegisterAllowed, setIsRegisterAllowed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const emailIsValid = emailPattern.test(email.trim());
+  const passwordRules = {
+    length: password.length >= 8,
+    number: /\d/.test(password),
+    symbol: /[^A-Za-z0-9]/.test(password),
+  };
+  const passwordStarted = Boolean(password || confirmPassword);
+  const passwordValid = Object.values(passwordRules).every(Boolean);
+  const confirmPasswordMatches = Boolean(password) && password === confirmPassword;
 
   const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -49,8 +57,8 @@ export default function RegisterPage() {
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (password !== confirmPassword) {
-      setStatusMessage('Passwords do not match.');
+    if (!passwordValid || !confirmPasswordMatches) {
+      setStatusMessage('Please complete the password rules before creating your account.');
       return;
     }
 
@@ -75,7 +83,7 @@ export default function RegisterPage() {
           <img className="block w-[58px] shrink-0" src="/Docs/DOE_blue_seal_logo-head.png" alt="U.S. Department of Energy" />
           <span className="ml-3 text-[clamp(20px,2.2vw,28px)] font-bold leading-tight tracking-normal max-sm:text-lg">ITAC Student and Alumni Portal</span>
         </Link>
-        <Button asChild className="!bg-doe-blue !text-white hover:!bg-slate-950" size="3">
+        <Button asChild size="3">
           <Link to="/">
             <LogIn aria-hidden="true" size={18} />
             Back to Login
@@ -141,34 +149,42 @@ export default function RegisterPage() {
                 <form className="mx-auto mt-6 w-full max-w-[540px] border-t border-slate-200 pt-6" onSubmit={handlePasswordSubmit}>
                   <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
                     <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Password</span>
-                    <TextField.Root
-                      type="password"
-                      size="3"
-                      autoComplete="new-password"
-                      placeholder="Create a password"
-                      required
-                      minLength={8}
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                    />
+                    <div>
+                      <TextField.Root
+                        type="password"
+                        size="3"
+                        autoComplete="new-password"
+                        placeholder="Create a password"
+                        required
+                        minLength={8}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                      />
+                      {passwordStarted && <PasswordRuleList rules={passwordRules} />}
+                    </div>
                   </label>
 
                   <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
                     <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Confirm</span>
-                    <TextField.Root
-                      type="password"
-                      size="3"
-                      autoComplete="new-password"
-                      placeholder="Confirm password"
-                      required
-                      minLength={8}
-                      value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
-                    />
+                    <div>
+                      <TextField.Root
+                        type="password"
+                        size="3"
+                        autoComplete="new-password"
+                        placeholder="Confirm password"
+                        required
+                        minLength={8}
+                        value={confirmPassword}
+                        onChange={(event) => setConfirmPassword(event.target.value)}
+                      />
+                      {passwordStarted && (
+                        <PasswordRule complete={confirmPasswordMatches} label={confirmPasswordMatches ? 'Passwords match' : 'Passwords must match'} />
+                      )}
+                    </div>
                   </label>
 
                   <div className="mb-2 ml-[90px] mt-1 flex flex-wrap items-center justify-center gap-3 max-sm:ml-0">
-                    <Button type="submit" disabled={isSubmitting || !password || password !== confirmPassword}>
+                    <Button type="submit" disabled={isSubmitting || !passwordValid || !confirmPasswordMatches}>
                       <Check aria-hidden="true" size={19} />
                       {isSubmitting ? 'Creating' : 'Create Password'}
                     </Button>
@@ -191,5 +207,26 @@ export default function RegisterPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+function PasswordRuleList({ rules }: { rules: Record<'length' | 'number' | 'symbol', boolean> }) {
+  return (
+    <div className="mt-3 space-y-1">
+      <PasswordRule complete={rules.length} label="At least 8 characters" />
+      <PasswordRule complete={rules.number} label="At least 1 number" />
+      <PasswordRule complete={rules.symbol} label="At least 1 special symbol" />
+    </div>
+  );
+}
+
+function PasswordRule({ complete, label }: { complete: boolean; label: string }) {
+  const Icon = complete ? CheckCircle2 : Circle;
+
+  return (
+    <p className={complete ? 'flex items-center gap-2 text-sm font-semibold text-green-700' : 'flex items-center gap-2 text-sm font-semibold text-slate-500'}>
+      <Icon aria-hidden="true" size={14} />
+      {label}
+    </p>
   );
 }
