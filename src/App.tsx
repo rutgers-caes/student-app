@@ -5,7 +5,6 @@ import FAQPage from '@/pages/FAQPage/faq-page';
 import LandingPage from '@/pages/LandingPage/landing-page';
 import LoginPage from '@/pages/LoginPage/login-page';
 import PasswordResetPage from '@/pages/PasswordResetPage/password-reset-page';
-import PortalSurvey from '@/pages/PortalSurvey/portal-survey';
 import RegisterPage from '@/pages/RegisterPage/register-page';
 import { profilePath } from '@/data/navigation';
 
@@ -25,7 +24,6 @@ function App() {
           <Route path="/students/:studentId" element={<LandingPage view="student-profile" />} />
           <Route path="/certificate-request" element={<CertificateRequestPage />} />
           <Route path="/faq" element={<FAQPage />} />
-          <Route path="/portal-survey" element={<PortalSurvey />} />
           <Route path="*" element={<Navigate to={profilePath} replace />} />
         </Routes>
       </BrowserRouter>

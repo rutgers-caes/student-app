@@ -1,6 +1,6 @@
 const tokenStorageKey = 'itac.student.token';
 const profileStorageKey = 'itac.student.profile';
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 type StoredStudentProfile = {
   id?: string;
@@ -95,6 +95,10 @@ export const AuthServiceApi = {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
+  },
+  async getPublicJobPostingCount() {
+    const result = await request<{ count: number }>('/jobs/public/count');
+    return result.count;
   },
   async completeRegistration(token: string, password: string) {
     return request<{ message: string }>('/auth/register/complete', {

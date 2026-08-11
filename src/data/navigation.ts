@@ -10,11 +10,23 @@ export function studentProfilePath(name: string) {
   return `/${slug || 'student'}/profile/detail`;
 }
 
-export const navItems = [
-  { label: 'FAQ', href: '/faq' },
-  { label: 'Open Job Postings', href: 'https://itacs.university/jobs', external: true },
-  { label: 'Portal Survey', href: '/portal-survey' },
-  { label: 'Entry Survey', href: '/entry-survey' },
-  { label: 'Exit Survey', href: '/exit-survey' },
-  { label: 'Email Us', href: 'mailto:students@iac.university' },
-];
+export type NavItem = {
+  label: string;
+  href: string;
+  external?: boolean;
+};
+
+export function getNavItems(jobPostingCount?: number) {
+  const jobPostingLabel =
+    typeof jobPostingCount === 'number' ? `${jobPostingCount} ${jobPostingCount === 1 ? 'Job Posting' : 'Job Postings'}` : 'Job Postings';
+
+  return [
+    { label: 'FAQ', href: '/faq' },
+    { label: jobPostingLabel, href: 'https://itacs.university/jobs', external: true },
+    { label: 'Entry Survey', href: '/entry-survey' },
+    { label: 'Exit Survey', href: '/exit-survey' },
+    { label: 'Email Us', href: 'mailto:students@iac.university' },
+  ] satisfies NavItem[];
+}
+
+export const navItems = getNavItems();

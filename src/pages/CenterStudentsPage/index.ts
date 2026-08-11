@@ -1,1 +1,1 @@
-export { CenterStudentsPage, PeerStudentProfilePage, StudentProfileView } from './center-students-page';
+export { CenterStudentsPage, PeerStudentProfilePage, StudentProfileView, StudentStatusBadge } from './center-students-page';
