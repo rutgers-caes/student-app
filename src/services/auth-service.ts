@@ -2,6 +2,29 @@ const tokenStorageKey = 'itac.student.token';
 const profileStorageKey = 'itac.student.profile';
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
+type StoredStudentProfile = {
+  id?: string;
+  firstName?: string;
+  name?: string;
+};
+
+function storeStudentProfileSnapshot(student: unknown) {
+  if (!student || typeof student !== 'object') {
+    localStorage.removeItem(profileStorageKey);
+    return;
+  }
+
+  const profile = student as StoredStudentProfile;
+  localStorage.setItem(
+    profileStorageKey,
+    JSON.stringify({
+      id: profile.id,
+      firstName: profile.firstName,
+      name: profile.name,
+    }),
+  );
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...options,
@@ -19,6 +42,36 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return payload as T;
 }
 
+async function downloadFile(path: string, fallbackFilename: string, options: RequestInit = {}) {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+    },
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.message || 'Download failed.');
+  }
+
+  const blob = await response.blob();
+  const filename = getFilenameFromContentDisposition(response.headers.get('Content-Disposition')) || fallbackFilename;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function getFilenameFromContentDisposition(contentDisposition: string | null) {
+  const match = contentDisposition?.match(/filename="([^"]+)"/);
+  return match?.[1] || '';
+}
+
 export const AuthServiceApi = {
   getToken() {
     return localStorage.getItem(tokenStorageKey) || '';
@@ -34,7 +87,7 @@ export const AuthServiceApi = {
     });
 
     localStorage.setItem(tokenStorageKey, result.token);
-    localStorage.setItem(profileStorageKey, JSON.stringify(result.student));
+    storeStudentProfileSnapshot(result.student);
     return result;
   },
   async requestRegistration(email: string) {
@@ -56,8 +109,29 @@ export const AuthServiceApi = {
         Authorization: `Bearer ${token}`,
       },
     });
-    localStorage.setItem(profileStorageKey, JSON.stringify(profile));
+    storeStudentProfileSnapshot(profile);
     return profile;
+  },
+  async updateMyProfile<T>(profileUpdate: Record<string, string>) {
+    const token = this.getToken();
+    const profile = await request<T>('/students/me', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(profileUpdate),
+    });
+    storeStudentProfileSnapshot(profile);
+    return profile;
+  },
+  async downloadMyAssessments(mode: 'all' | 'lead') {
+    const token = this.getToken();
+    const filename = mode === 'lead' ? 'ITAC_student_lead_assessments.xlsx' : 'ITAC_student_all_assessments.xlsx';
+    return downloadFile(`/students/me/assessments/${mode}.xlsx`, filename, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   },
   async getStudentProfile<T>(studentId: string) {
     const token = this.getToken();

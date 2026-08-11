@@ -40,15 +40,15 @@ export default function LoginPage() {
         <img className="block w-[min(430px,76vw)]" src={`${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo.png`} alt="U.S. Department of Energy" />
         
         <div className="w-full max-w-[680px] px-[34px] py-7 max-sm:px-[18px]">
-          <p className="mb-2 mt-5 w-full whitespace-nowrap text-center text-[clamp(16px,3vw,26px)] font-semibold leading-tight tracking-normal text-slate-800">
+          <p className="mb-5 mt-6 w-full whitespace-nowrap text-center text-[clamp(18px,3.2vw,28px)] font-semibold leading-tight tracking-normal text-slate-800">
             Industrial Training and Assessment Centers
           </p>
-          <h2 className="mb-7 mt-3 text-center text-[clamp(32px,4vw,46px)] font-normal leading-tight tracking-normal text-slate-950" id="login-title">
-            Student/Alumni Portal
+          <h2 className="mb-7 mt-0 text-center text-[clamp(34px,4.2vw,50px)] font-semibold leading-tight tracking-normal text-slate-950" id="login-title">
+            Student and Alumni Portal
           </h2>
           <form className="mx-auto w-full max-w-[540px]" onSubmit={handleSubmit}>
             <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
-              <span className="text-right text-[17px] text-slate-700 max-sm:text-left">E-Mail Address</span>
+              <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Email Address</span>
               <TextField.Root type="email" size="3" autoComplete="email" placeholder="name@example.com" required value={email} onChange={(event) => setEmail(event.target.value)} />
             </label>
 
@@ -90,11 +90,11 @@ export default function LoginPage() {
               type="button"
               onClick={() => setIsAboutOpen(true)}
             >
-              What is the ITAC Student/Alumni Portal
+              What is the ITAC Student and Alumni Portal
               <CircleHelp aria-hidden="true" size={21} />
             </button>
             <p className="mt-3 text-[15px] font-bold leading-normal text-slate-800">
-              For information about the ndustrial Training and Assessment Centers program, please visit:{' '}
+              For information about the ITAC program, please visit:{' '}
               <a className="text-doe-blue underline underline-offset-4" href="https://itacs.university/home" target="_blank" rel="noreferrer">
                 ITACS.university
               </a>

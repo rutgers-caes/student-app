@@ -1,4 +1,5 @@
 export type StudentAssessmentCounts = {
+  beforeLead: number;
   lead: number;
   safety: number;
   other: number;
@@ -15,6 +16,7 @@ export type StudentAssessment = {
   id: string;
   date: string;
   facultyStaff: string;
+  facultyStaffParticipants: StudentAssessmentParticipant[];
   studentRole: 'Lead' | 'Safety' | 'Other';
   participants: StudentAssessmentParticipant[];
 };
