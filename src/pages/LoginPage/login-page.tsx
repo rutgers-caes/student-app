@@ -22,9 +22,6 @@ export default function LoginPage() {
 
     try {
       const result = await AuthServiceApi.login(email, password);
-      if (result.temporaryPasswordRequired) {
-        setStatusMessage('Temporary password accepted. Please update your password from Edit Profile after login.');
-      }
       const student = result.student as { name?: string };
       navigate(student.name ? studentProfilePath(student.name) : profilePath);
     } catch (error) {

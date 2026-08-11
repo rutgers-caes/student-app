@@ -11,7 +11,7 @@ const emailNotFoundMessage = 'Email Not In Database, Please Contact Center';
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [setupToken, setSetupToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
@@ -26,18 +26,19 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     setStatusMessage('');
     setIsRegisterAllowed(false);
-    setVerifiedEmail('');
+    setSetupToken('');
     setPassword('');
     setConfirmPassword('');
 
     try {
       const result = await AuthServiceApi.requestRegistration(email.trim());
-      setIsRegisterAllowed(result.approved);
-      if (result.approved) {
+      const canSetPasswordDirectly = Boolean(result.approved && result.directPasswordSetupAllowed && result.setupToken);
+      setIsRegisterAllowed(canSetPasswordDirectly);
+      if (canSetPasswordDirectly) {
         setStatusMessage(result.message);
-        setVerifiedEmail(email.trim());
+        setSetupToken(result.setupToken || '');
       } else {
-        setStatusMessage(emailNotFoundMessage);
+        setStatusMessage(result.message || emailNotFoundMessage);
       }
     } catch (error) {
       setStatusMessage(emailNotFoundMessage);
@@ -58,7 +59,7 @@ export default function RegisterPage() {
     setStatusMessage('');
 
     try {
-      const result = await AuthServiceApi.completeRegistration(verifiedEmail, password);
+      const result = await AuthServiceApi.completeRegistration(setupToken, password);
       setStatusMessage(`${result.message} You can now log in.`);
       setTimeout(() => navigate('/'), 900);
     } catch (error) {
@@ -137,7 +138,7 @@ export default function RegisterPage() {
                 </div>
               </form>
 
-              {isRegisterAllowed && verifiedEmail && (
+              {isRegisterAllowed && setupToken && (
                 <form className="mx-auto mt-6 w-full max-w-[540px] border-t border-slate-200 pt-6" onSubmit={handlePasswordSubmit}>
                   <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
                     <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Password</span>
@@ -166,6 +167,12 @@ export default function RegisterPage() {
                       onChange={(event) => setConfirmPassword(event.target.value)}
                     />
                   </label>
+
+                  <p className="mb-4 ml-[166px] text-sm leading-6 text-slate-600 max-sm:ml-0">
+                    At least 8 characters<br />
+                    At least 1 number<br />
+                    At least 1 special symbol
+                  </p>
 
                   <div className="mb-2 ml-[90px] mt-1 flex flex-wrap items-center justify-center gap-3 max-sm:ml-0">
                     <Button type="submit" disabled={isSubmitting || !password || password !== confirmPassword}>

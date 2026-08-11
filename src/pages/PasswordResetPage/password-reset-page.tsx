@@ -1,16 +1,48 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button, TextField } from '@radix-ui/themes';
-import { LogIn, Send } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Check, LogIn, Send } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { AuthServiceApi } from '@/services/auth-service';
 
 export default function PasswordResetPage() {
   const [email, setEmail] = useState('');
   const [submittedEmail, setSubmittedEmail] = useState('');
+  const [setupToken, setSetupToken] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const linkToken = searchParams.get('token') || '';
+  const activeToken = linkToken || setupToken;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmittedEmail(email.trim());
+    setIsSubmitting(true);
+    setStatusMessage('');
+    try {
+      const result = await AuthServiceApi.requestPasswordReset(email.trim());
+      setSubmittedEmail(email.trim());
+      if (result.directPasswordSetupAllowed && result.setupToken) setSetupToken(result.setupToken);
+      setStatusMessage(result.message);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Unable to request password reset.');
+    } finally { setIsSubmitting(false); }
+  }
+
+  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (password !== confirmPassword) { setStatusMessage('Passwords do not match.'); return; }
+    setIsSubmitting(true);
+    try {
+      const result = await AuthServiceApi.completePasswordReset(activeToken, password);
+      setStatusMessage(result.message);
+      setTimeout(() => navigate('/'), 900);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Unable to update password.');
+    } finally { setIsSubmitting(false); }
   }
 
   return (
@@ -38,7 +70,7 @@ export default function PasswordResetPage() {
               Reset Password
             </h1>
 
-            <form className="px-7 py-6 max-sm:px-5" onSubmit={handleSubmit}>
+            {!linkToken && <form className="px-7 py-6 max-sm:px-5" onSubmit={handleSubmit}>
               <label className="block">
                 <span className="mb-3 block text-[17px] font-medium text-slate-700">E-Mail Address</span>
                 <TextField.Root
@@ -53,18 +85,27 @@ export default function PasswordResetPage() {
               </label>
 
               <div className="mt-5 flex justify-center">
-                <Button size="3" type="submit">
+                <Button size="3" type="submit" disabled={isSubmitting}>
                   <Send aria-hidden="true" size={19} />
                   Send Password Reset Link
                 </Button>
               </div>
 
-              {submittedEmail && (
+              {submittedEmail && !setupToken && (
                 <div className="mt-5 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-center text-[15px] leading-6 text-slate-800" role="status">
                   If <strong>{submittedEmail}</strong> matches an approved ITAC account, a password reset link will be sent.
                 </div>
               )}
-            </form>
+            </form>}
+
+            {activeToken && <form className="px-7 py-6 max-sm:px-5" onSubmit={handlePasswordSubmit}>
+              <p className="mb-5 text-slate-700">Create a new password for your student account.</p>
+              <TextField.Root type="password" size="3" autoComplete="new-password" placeholder="New password" required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
+              <div className="mt-3"><TextField.Root type="password" size="3" autoComplete="new-password" placeholder="Confirm new password" required minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>
+              <p className="mt-3 text-sm text-slate-600">Use at least 8 characters with at least 1 number and 1 special symbol.</p>
+              <div className="mt-5 flex justify-center"><Button size="3" type="submit" disabled={isSubmitting || !password || password !== confirmPassword}><Check size={19} />Update Password</Button></div>
+            </form>}
+            {statusMessage && <div className="mx-7 mb-6 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-center text-sm text-slate-800" role="status">{statusMessage}</div>}
           </div>
         </section>
       </main>

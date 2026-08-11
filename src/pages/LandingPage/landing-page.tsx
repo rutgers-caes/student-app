@@ -62,10 +62,10 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
     number: /\d/.test(form.password),
     symbol: /[^A-Za-z0-9]/.test(form.password),
   };
-  const passwordStarted = Boolean(form.password || form.confirmPassword);
+  const passwordStarted = Boolean(form.currentPassword || form.password || form.confirmPassword);
   const passwordValid = Object.values(passwordRules).every(Boolean);
   const confirmPasswordMatches = Boolean(form.password) && form.password === form.confirmPassword;
-  const passwordSectionValid = !passwordStarted || (passwordValid && confirmPasswordMatches);
+  const passwordSectionValid = !passwordStarted || (Boolean(form.currentPassword) && passwordValid && confirmPasswordMatches);
   const initialFormForStudent = useMemo(() => buildProfileForm(portalStudent), [portalStudent]);
   const formChanged = Object.entries(form).some(([field, value]) => initialFormForStudent[field as keyof typeof initialFormForStudent] !== value);
   const requiredComplete =
@@ -105,7 +105,12 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
 
     setIsSaving(true);
     try {
-      const updatedProfile = await AuthServiceApi.updateMyProfile<StudentProfile>(buildProfileUpdatePayload(form, initialFormForStudent));
+      const profilePayload = buildProfileUpdatePayload(form, initialFormForStudent);
+      const profileChanged = Object.keys(profilePayload).length > 0;
+      const updatedProfile = profileChanged
+        ? await AuthServiceApi.updateMyProfile<StudentProfile>(profilePayload)
+        : portalStudent;
+      if (passwordStarted) await AuthServiceApi.changePassword(form.currentPassword, form.password);
       setPortalStudent(updatedProfile);
       setForm(buildProfileForm(updatedProfile));
       setSavedMessage(passwordStarted ? 'Profile and password updated.' : 'Profile updated.');
@@ -169,6 +174,7 @@ function buildProfileForm(student: StudentProfile | null) {
     linkedin: student?.linkedin || '',
     graduationYear: student?.graduationYear || '',
     graduateStudentType: student?.graduateStudentType || '',
+    currentPassword: '',
     password: '',
     confirmPassword: '',
   };
@@ -184,6 +190,7 @@ function buildProfileUpdatePayload(form: Record<string, string>, initialForm: Re
     'classStanding',
     'linkedin',
     'graduationYear',
+    'graduateStudentType',
   ];
 
   const payload: Record<string, string> = {};
@@ -191,10 +198,6 @@ function buildProfileUpdatePayload(form: Record<string, string>, initialForm: Re
     if (form[field] !== initialForm[field]) {
       payload[field] = form[field];
     }
-  }
-
-  if (form.password) {
-    payload.password = form.password;
   }
 
   return payload;
@@ -329,6 +332,14 @@ function EditProfileView({
         <section className="mt-8 border-t border-slate-200 pt-6">
           <h2 className="text-xl font-semibold text-slate-950">Password Update</h2>
           <div className="mt-4 grid gap-5 md:grid-cols-2">
+            <TextInput
+              autoComplete="off"
+              label="Current password"
+              name="current-password"
+              type="password"
+              value={form.currentPassword}
+              onChange={(value) => onUpdate('currentPassword', value)}
+            />
             <div>
               <TextInput
                 autoComplete="new-password"

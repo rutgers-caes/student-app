@@ -36,7 +36,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload.message || 'Request failed.');
+    throw new Error(payload.error || payload.message || 'Request failed.');
   }
 
   return payload as T;
@@ -81,7 +81,7 @@ export const AuthServiceApi = {
     return profile ? (JSON.parse(profile) as T) : null;
   },
   async login(email: string, password: string) {
-    const result = await request<{ token: string; temporaryPasswordRequired: boolean; student: unknown }>('/auth/login', {
+    const result = await request<{ token: string; student: unknown }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -91,15 +91,35 @@ export const AuthServiceApi = {
     return result;
   },
   async requestRegistration(email: string) {
-    return request<{ approved: boolean; temporaryPassword?: string; message: string }>('/auth/register/request', {
+    return request<{ approved?: boolean; directPasswordSetupAllowed?: boolean; setupToken?: string; message: string }>('/auth/register/request', {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
   },
-  async completeRegistration(email: string, password: string) {
+  async completeRegistration(token: string, password: string) {
     return request<{ message: string }>('/auth/register/complete', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ token, password }),
+    });
+  },
+  async requestPasswordReset(email: string) {
+    return request<{ directPasswordSetupAllowed?: boolean; setupToken?: string; message: string }>('/auth/password/forgot', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+  async completePasswordReset(token: string, password: string) {
+    return request<{ message: string }>('/auth/password/complete', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  },
+  async changePassword(currentPassword: string, newPassword: string) {
+    const token = this.getToken();
+    return request<{ message: string }>('/students/me/password', {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ currentPassword, newPassword }),
     });
   },
   async getMyProfile<T>() {
