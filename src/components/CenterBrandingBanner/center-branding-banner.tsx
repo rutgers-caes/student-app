@@ -3,11 +3,10 @@ import { centers } from '@/data/CenterBranding';
 import type { CenterStudentProfile, StudentProfile } from '@/types/student-profile';
 
 export function CenterBrandingBanner({ actions, student }: { actions?: ReactNode; student: CenterStudentProfile | StudentProfile }) {
-  const [centerCode, satelliteCode] = student.centerCode.split('-');
+  const [centerCode] = student.centerCode.split('-');
   const center = centers.find((centerOption) => centerOption.code === centerCode);
   const primaryColor = center?.colors[0] || '#607aa8';
   const centerName = center?.name || student.center.split('|')[1]?.trim() || student.center;
-  const satellite = satelliteCode?.trim() || '-';
   const website = center?.website.trim();
   const logoContent = center?.logos.main ? <img className="h-full w-full object-contain p-1" src={center.logos.main} alt="" /> : centerCode;
   const logoClassName =
@@ -35,7 +34,9 @@ export function CenterBrandingBanner({ actions, student }: { actions?: ReactNode
           )}
           <div className="min-w-0">
             <h1 className="text-[clamp(20px,2.4vw,30px)] font-bold leading-tight tracking-normal text-white">{centerName}</h1>
-            <p className="mt-1 text-sm font-semibold text-white/80">Satellite: {satellite}</p>
+            {student.isSatelliteCenter && student.satelliteCenterName && (
+              <p className="mt-1 text-sm font-semibold text-white/80">Satellite Center: {student.satelliteCenterName}</p>
+            )}
           </div>
         </div>
         {actions && <div className="flex flex-wrap items-center gap-3">{actions}</div>}

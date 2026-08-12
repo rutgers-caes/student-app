@@ -4,7 +4,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
 import { ArrowLeft, Camera, Download, ExternalLink, FileQuestion, ListChecks, Mail, ShieldCheck, User, Users } from 'lucide-react';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
-import { profilePath, studentProfilePath } from '@/data/navigation';
+import { studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
 import type { CenterStudentProfile, StudentProfile } from '@/types/student-profile';
 import {
@@ -174,7 +174,9 @@ function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | '
           <dl className="grid flex-1 grid-cols-1 content-start px-5 py-1 md:grid-cols-[200px_minmax(0,1fr)]">
             <ProfileRow label="Student ID" value={student.id} />
             <ProfileRow label="Center" value={student.center} />
-            <ProfileRow label="Satellite" value={getSatelliteCenter(student.centerCode)} />
+            {student.isSatelliteCenter && student.satelliteCenterName && (
+              <ProfileRow label="Satellite Center" value={student.satelliteCenterName} />
+            )}
             <ProfileRow label="Student type" value={student.type} />
             <ProfileRow label="ITAC Student Certificate" value={<CertificateStatus portalStudent={portalStudent} student={student} />} />
             <ProfileRow label="Time in ITAC" value={student.timeInItac} />
@@ -468,10 +470,6 @@ function formatValue(value: string | number | null | undefined) {
 
 function formatNode(value: ReactNode) {
   return typeof value === 'string' || typeof value === 'number' ? formatValue(value) : value;
-}
-
-function getSatelliteCenter(centerCode: string) {
-  return centerCode.split('-')[1]?.trim() || '-';
 }
 
 export function StudentStatusBadge({ compact = false, status }: { compact?: boolean; status: string }) {

@@ -26,6 +26,8 @@ export type CenterStudentProfile = {
   name: string;
   center: string;
   centerCode: string;
+  isSatelliteCenter: boolean;
+  satelliteCenterName: string;
   type: string;
   studentType: string;
   status: 'Active' | 'Former';

@@ -48,7 +48,7 @@ export default function RegisterPage() {
       } else {
         setStatusMessage(result.message || emailNotFoundMessage);
       }
-    } catch (error) {
+    } catch {
       setStatusMessage(emailNotFoundMessage);
     } finally {
       setIsSubmitting(false);
