@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
-import { ArrowLeft, Camera, Download, ExternalLink, FileQuestion, ListChecks, Mail, ShieldCheck, User, Users } from 'lucide-react';
+import { ArrowLeft, Camera, Eye, ExternalLink, FileQuestion, Hash, Mail, ShieldCheck, User, Users } from 'lucide-react';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
 import { studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
-import type { CenterStudentProfile, StudentProfile } from '@/types/student-profile';
+import type { CenterStudentProfile, StudentAssessment, StudentProfile } from '@/types/student-profile';
 import {
   getAssessmentTotal,
   getCurrentCenterStudent,
@@ -20,12 +20,18 @@ import {
 type PortalStudent = StudentProfile;
 type CenterStudent = CenterStudentProfile;
 
-export function StudentProfileView({ portalStudent }: { portalStudent: PortalStudent }) {
+export function StudentProfileView({
+  onStudentUpdate,
+  portalStudent,
+}: {
+  onStudentUpdate?: (student: StudentProfile) => void;
+  portalStudent: PortalStudent;
+}) {
   const currentStudent = getCurrentCenterStudent(portalStudent);
 
   return (
     <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-      <StudentProfileCard portalStudent={portalStudent} student={currentStudent} mode="self" />
+      <StudentProfileCard onStudentUpdate={onStudentUpdate} portalStudent={portalStudent} student={currentStudent} mode="self" />
 
       <div className="mt-6">
         <AssessmentPanel allowDownloads portalStudent={portalStudent} student={currentStudent} />
@@ -97,35 +103,65 @@ export function CenterStudentsPage({ portalStudent }: { portalStudent: PortalStu
   );
 }
 
-function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | 'peer'; portalStudent: PortalStudent; student: CenterStudent | StudentProfile }) {
+function StudentProfileCard({
+  mode,
+  onStudentUpdate,
+  portalStudent,
+  student,
+}: {
+  mode: 'self' | 'peer';
+  onStudentUpdate?: (student: StudentProfile) => void;
+  portalStudent: PortalStudent;
+  student: CenterStudent | StudentProfile;
+}) {
   const [uploadedProfileImage, setUploadedProfileImage] = useState('');
+  const [photoMessage, setPhotoMessage] = useState('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const assessmentTotalForStudent = getAssessmentTotal(student.assessmentCounts);
+  const assessmentRecordsForStudent = getStudentAssessmentRecords(portalStudent, student);
+  const assessmentDateRange = getAssessmentDateRange(assessmentRecordsForStudent);
+  const assessmentsBeforeLead = getAssessmentsBeforeLead(assessmentRecordsForStudent);
+  const satelliteCenter = student.satelliteCenterName || getSatelliteCenter(student.centerCode);
   const studentProfileImage = uploadedProfileImage || student.photoBase64 || '';
 
-  function handleProfilePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleProfilePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    setUploadedProfileImage(URL.createObjectURL(file));
-  }
+    if (file.size > 3_500_000) {
+      setPhotoMessage('Profile photo must be 3.5 MB or smaller.');
+      event.target.value = '';
+      return;
+    }
 
-  useEffect(() => {
-    return () => {
-      if (uploadedProfileImage) {
-        URL.revokeObjectURL(uploadedProfileImage);
-      }
-    };
-  }, [uploadedProfileImage]);
+    setIsUploadingPhoto(true);
+    setPhotoMessage('');
+
+    try {
+      const profilePhoto = await readFileAsDataUrl(file);
+      setUploadedProfileImage(profilePhoto);
+      const updatedProfile = await AuthServiceApi.updateMyProfile<StudentProfile>({ profilePhoto });
+      onStudentUpdate?.(updatedProfile);
+      setUploadedProfileImage('');
+      setPhotoMessage('Profile photo updated.');
+    } catch (error) {
+      setUploadedProfileImage('');
+      setPhotoMessage(error instanceof Error ? error.message : 'Unable to update profile photo.');
+    } finally {
+      setIsUploadingPhoto(false);
+      event.target.value = '';
+    }
+  }
 
   return (
     <>
       <section className="grid items-stretch gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mx-auto w-fit overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-2">
-            <ProfileImage className="aspect-square w-[100px]" imageSrc={studentProfileImage} label={`${student.name} profile`} />
+            <ProfileImage className="aspect-square w-[clamp(140px,42vw,220px)]" imageSrc={studentProfileImage} label={`${student.name} profile`} />
           </div>
           {mode === 'self' && (
             <>
@@ -133,21 +169,25 @@ function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | '
               <Button asChild className="mt-4 w-full" color="gray" highContrast variant="soft">
                 <label htmlFor="profile-photo-upload">
                   <Camera aria-hidden="true" size={18} />
-                  Upload Profile Photo
+                  {isUploadingPhoto ? 'Uploading Photo' : 'Upload Profile Photo'}
                 </label>
               </Button>
+              {photoMessage && (
+                <p className={`mt-3 text-center text-sm font-semibold ${photoMessage.includes('updated') ? 'text-green-700' : 'text-red-700'}`}>
+                  {photoMessage}
+                </p>
+              )}
             </>
           )}
 
           <div className="mt-6 rounded-lg border border-slate-200">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-950">
-                <ListChecks aria-hidden="true" size={20} />
+            <div className="border-b border-slate-200 px-4 py-3 text-center">
+              <h2 className="flex items-center justify-center gap-2 text-lg font-semibold text-slate-950">
                 Assessment Count
               </h2>
             </div>
-            <div className="px-3 pb-2 pt-3 text-xs font-bold uppercase tracking-[0.06em] text-slate-500">
-              {student.assessmentCounts.beforeLead} {student.assessmentCounts.beforeLead === 1 ? 'assessment' : 'assessments'} before lead
+            <div className="px-3 pb-2 pt-3 text-center text-xs font-bold uppercase tracking-[0.06em] text-slate-500">
+              {formatAssessmentsBeforeLead(assessmentsBeforeLead)}
             </div>
             <div className="grid grid-cols-4 text-center">
               {[
@@ -167,29 +207,19 @@ function StudentProfileCard({ mode, portalStudent, student }: { mode: 'self' | '
 
         <section className="flex h-full flex-col rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3">
-            <h2 className="text-[clamp(32px,3vw,42px)] font-semibold leading-tight text-slate-950">{student.name}</h2>
+            <h2 className="text-[clamp(28px,2.6vw,36px)] font-semibold leading-tight text-slate-950">{student.name}</h2>
             <ProfileHeaderActions mode={mode} student={student} />
           </div>
 
           <dl className="grid flex-1 grid-cols-1 content-start px-5 py-1 md:grid-cols-[200px_minmax(0,1fr)]">
             <ProfileRow label="Student ID" value={student.id} />
-            <ProfileRow label="Center" value={student.center} />
-            {student.isSatelliteCenter && student.satelliteCenterName && (
-              <ProfileRow label="Satellite Center" value={student.satelliteCenterName} />
-            )}
+            <ProfileRow label="Center" value={<CenterValue center={student.center} satelliteCenter={satelliteCenter} />} />
             <ProfileRow label="Student type" value={student.type} />
+            <ProfileRow label="First Assessment Date" value={assessmentDateRange.first} />
+            <ProfileRow label="Last Assessment Date" value={assessmentDateRange.last} />
             <ProfileRow label="ITAC Student Certificate" value={<CertificateStatus portalStudent={portalStudent} student={student} />} />
-            <ProfileRow label="Time in ITAC" value={student.timeInItac} />
-            {mode === 'peer' && (
-              <ProfileRow
-                label="Email"
-                value={
-                  <a className="font-semibold text-doe-blue underline underline-offset-4" href={`mailto:${student.email}`}>
-                    {formatValue(student.email)}
-                  </a>
-                }
-              />
-            )}
+            <ProfileRow label="Time in ITAC (estimated)" value={formatTimeInItac(student.timeInItac)} />
+            <ProfileRow label="Email" value={<EmailLink email={student.email} />} />
           </dl>
         </section>
       </section>
@@ -230,6 +260,7 @@ function ProfileHeaderActions({ mode, student }: { mode: 'self' | 'peer'; studen
 function CenterStudentDirectory({ portalStudent }: { portalStudent: PortalStudent }) {
   const centerStudents = getVisibleCenterStudents(portalStudent);
   const profileHref = studentProfilePath(portalStudent.name);
+  const directoryGridColumns = 'grid-cols-[120px_minmax(220px,1.15fr)_170px_120px_82px_82px_82px_minmax(260px,1.2fr)]';
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -255,33 +286,35 @@ function CenterStudentDirectory({ portalStudent }: { portalStudent: PortalStuden
       </div>
 
       <div className="overflow-x-auto">
-        <div className="grid min-w-[1020px] grid-cols-[90px_minmax(180px,1fr)_150px_120px_90px_90px_90px_minmax(220px,1.2fr)] border-b border-slate-200 px-5 py-3 text-sm font-bold uppercase tracking-[0.04em] text-slate-500">
-          <div>Role</div>
+        <div className={`grid min-w-[1140px] ${directoryGridColumns} items-center border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-bold uppercase tracking-[0.06em] text-slate-500`}>
+          <div className="text-center">Role</div>
           <div>Name</div>
           <div>Type</div>
           <div>Grad Year</div>
-          <div>Lead</div>
-          <div>Safety</div>
-          <div>Other</div>
+          <div className="text-center">Lead</div>
+          <div className="text-center">Safety</div>
+          <div className="text-center">Other</div>
           <div>Email</div>
         </div>
 
         {centerStudents.map((student, index) => (
           <div
-            className={`grid min-w-[1020px] grid-cols-[90px_minmax(180px,1fr)_150px_120px_90px_90px_90px_minmax(220px,1.2fr)] items-center border-b border-slate-200 px-5 py-4 last:border-b-0 ${
+            className={`grid min-w-[1140px] ${directoryGridColumns} items-center border-b border-slate-200 px-5 py-4 last:border-b-0 ${
               index % 2 === 0 ? 'bg-slate-50' : 'bg-white'
             }`}
             key={student.id}
           >
-            <StudentStatusDot status={student.status} />
+            <div className="flex justify-center">
+              <StudentStatusDot status={student.status} />
+            </div>
             <Link className="w-fit rounded-md text-base font-bold text-doe-blue underline underline-offset-4 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-blue-200" to={`/students/${student.id}`}>
               {student.name}
             </Link>
             <div className="text-sm font-semibold text-slate-700">{formatValue(student.type)}</div>
             <div className="text-sm font-semibold text-slate-700">{formatValue(student.graduationYear)}</div>
-            <AssessmentCountBadge value={student.assessmentCounts.lead} />
-            <AssessmentCountBadge value={student.assessmentCounts.safety} />
-            <AssessmentCountBadge value={student.assessmentCounts.other} />
+            <div className="flex justify-center"><AssessmentCountBadge value={student.assessmentCounts.lead} /></div>
+            <div className="flex justify-center"><AssessmentCountBadge value={student.assessmentCounts.safety} /></div>
+            <div className="flex justify-center"><AssessmentCountBadge value={student.assessmentCounts.other} /></div>
             <a className="truncate text-sm font-semibold text-doe-blue underline underline-offset-4" href={`mailto:${student.email}`}>
               {formatValue(student.email)}
             </a>
@@ -315,20 +348,10 @@ function CertificateStatus({ portalStudent, student }: { portalStudent: PortalSt
 }
 
 function AssessmentPanel({ allowDownloads = false, portalStudent, student }: { allowDownloads?: boolean; portalStudent: PortalStudent; student: CenterStudent | StudentProfile }) {
-  const [downloadMode, setDownloadMode] = useState<'all' | 'lead' | ''>('');
   const hasLeadAssessments = student.assessmentCounts.lead > 0;
   const assessmentRecordsForStudent = getStudentAssessmentRecords(portalStudent, student);
   const assessmentTotalForStudent = getAssessmentTotal(student.assessmentCounts);
   const hasAssessments = assessmentTotalForStudent > 0;
-
-  async function handleDownload(mode: 'all' | 'lead') {
-    setDownloadMode(mode);
-    try {
-      await AuthServiceApi.downloadMyAssessments(mode);
-    } finally {
-      setDownloadMode('');
-    }
-  }
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -343,23 +366,33 @@ function AssessmentPanel({ allowDownloads = false, portalStudent, student }: { a
           </p>
         </div>
 
-        {allowDownloads && hasAssessments && (
+        {allowDownloads && (
           <div className="text-left sm:text-center">
-            <p className="mb-2 text-base font-bold text-slate-800">Download Student Related Metrics</p>
+            <p className="mb-2 text-base font-bold text-slate-800">View Student Related Metrics</p>
             <div className="flex flex-wrap gap-2 sm:justify-center">
-              <Button type="button" color="blue" disabled={Boolean(downloadMode)} onClick={() => handleDownload('all')}>
-                <Download aria-hidden="true" size={17} />
-                {downloadMode === 'all' ? 'Downloading' : 'All Assessments'}
+              {hasAssessments ? (
+                <Button asChild color="blue">
+                  <Link to="/assessments/metrics/all">
+                    <Eye aria-hidden="true" size={17} />
+                    All Assessments Metrics
+                  </Link>
+                </Button>
+              ) : (
+                <span title="No assessments yet">
+                  <Button type="button" color="blue" disabled>
+                    <Eye aria-hidden="true" size={17} />
+                    All Assessments Metrics
+                  </Button>
+                </span>
+              )}
+              {hasLeadAssessments && (
+                <Button asChild color="blue">
+                  <Link to="/assessments/metrics/lead">
+                  <Eye aria-hidden="true" size={17} />
+                    As Lead Metrics
+                </Link>
               </Button>
-              <Button
-                type="button"
-                color="blue"
-                disabled={!hasLeadAssessments || Boolean(downloadMode)}
-                onClick={() => handleDownload('lead')}
-              >
-                <Download aria-hidden="true" size={17} />
-                {downloadMode === 'lead' ? 'Downloading' : 'As Lead'}
-              </Button>
+              )}
             </div>
           </div>
         )}
@@ -452,6 +485,27 @@ function ProfileRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+function EmailLink({ email }: { email: string }) {
+  if (!email) return '-';
+
+  return (
+    <a className="font-semibold text-doe-blue underline underline-offset-4" href={`mailto:${email}`}>
+      {email}
+    </a>
+  );
+}
+
+function CenterValue({ center, satelliteCenter }: { center: string; satelliteCenter: string }) {
+  return (
+    <div>
+      <div>{formatValue(center)}</div>
+      <div className="mt-1">
+        Satellite Center: <span className="font-semibold">{satelliteCenter || '-'}</span>
+      </div>
+    </div>
+  );
+}
+
 function ProfileImage({ className, imageSrc, label }: { className: string; imageSrc: string; label: string }) {
   if (imageSrc) {
     return <img className={`${className} object-cover`} src={imageSrc} alt={label} />;
@@ -472,6 +526,97 @@ function formatNode(value: ReactNode) {
   return typeof value === 'string' || typeof value === 'number' ? formatValue(value) : value;
 }
 
+function getAssessmentDateRange(assessments: StudentAssessment[]) {
+  const dates = assessments
+    .map((assessment) => parseDisplayDate(assessment.date))
+    .filter((date): date is Date => Boolean(date))
+    .sort((first, second) => first.getTime() - second.getTime());
+
+  if (!dates.length) {
+    return { first: '-', last: '-' };
+  }
+
+  return {
+    first: formatDisplayDate(dates[0]),
+    last: formatDisplayDate(dates[dates.length - 1]),
+  };
+}
+
+function getAssessmentsBeforeLead(assessments: StudentAssessment[]) {
+  const sortedAssessments = [...assessments].sort((first, second) => {
+    const firstDate = parseDisplayDate(first.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    const secondDate = parseDisplayDate(second.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    return firstDate - secondDate || first.id.localeCompare(second.id);
+  });
+  const firstLeadIndex = sortedAssessments.findIndex((assessment) => assessment.studentRole === 'Lead');
+  return firstLeadIndex === -1 ? null : firstLeadIndex;
+}
+
+function formatAssessmentsBeforeLead(value: number | null) {
+  if (value === null) return '-';
+  return `${value} ${value === 1 ? 'assessment' : 'assessments'} before lead`;
+}
+
+function parseDisplayDate(value: string) {
+  const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return null;
+  return new Date(Number(match[3]), Number(match[1]) - 1, Number(match[2]));
+}
+
+function formatDisplayDate(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${month}/${day}/${date.getFullYear()}`;
+}
+
+function formatTimeInItac(value: string | null | undefined) {
+  const totalDays = Number(String(value || '').match(/\d+/)?.[0] ?? 0);
+  if (!totalDays) return '0 Days';
+
+  const estimate = formatEstimatedDuration(totalDays);
+  return estimate ? `${totalDays} Days (${estimate})` : `${totalDays} Days`;
+}
+
+function formatDurationPart(value: number, label: string) {
+  if (!value) return '';
+  return `${value} ${label}${value === 1 ? '' : 's'}`;
+}
+
+function formatEstimatedDuration(totalDays: number) {
+  const years = Math.floor(totalDays / 365);
+  const remainingAfterYears = totalDays % 365;
+  const months = Math.floor(remainingAfterYears / 30);
+  const remainingAfterMonths = remainingAfterYears % 30;
+  const weeks = Math.floor(remainingAfterMonths / 7);
+  const days = remainingAfterMonths % 7;
+  return [
+    formatDurationPart(years, 'year'),
+    formatDurationPart(months, 'month'),
+    formatDurationPart(weeks, 'week'),
+    formatDurationPart(days, 'day'),
+  ].filter(Boolean).join(', ');
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      if (typeof reader.result === 'string' && reader.result.startsWith('data:image/')) {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error('Please choose a valid image file.'));
+    });
+    reader.addEventListener('error', () => reject(new Error('Unable to read profile photo.')));
+    reader.readAsDataURL(file);
+  });
+}
+
+function getSatelliteCenter(centerCode: string) {
+  const satellite = centerCode.split('-')[1]?.trim();
+  return satellite && satellite.toLowerCase() !== 'itac' ? satellite : '';
+}
 export function StudentStatusBadge({ compact = false, status }: { compact?: boolean; status: string }) {
   const isActive = status.toLowerCase() === 'active';
 
