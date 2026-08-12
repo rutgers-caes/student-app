@@ -166,7 +166,7 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
             }
             student={portalStudent}
           />
-          <StudentProfileView portalStudent={portalStudent} />
+          <StudentProfileView portalStudent={portalStudent} onStudentUpdate={setPortalStudent} />
         </>
       )}
     </div>

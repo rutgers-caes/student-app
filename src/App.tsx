@@ -1,5 +1,6 @@
 import { Theme } from '@radix-ui/themes';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import AssessmentMetricsPage from '@/pages/AssessmentMetricsPage/assessment-metrics-page';
 import CertificateRequestPage from '@/pages/CertificateRequestPage/certificate-request-page';
 import FAQPage from '@/pages/FAQPage/faq-page';
 import LandingPage from '@/pages/LandingPage/landing-page';
@@ -22,6 +23,7 @@ function App() {
           <Route path="/edit-profile" element={<LandingPage view="edit" />} />
           <Route path="/center-students" element={<LandingPage view="center-students" />} />
           <Route path="/students/:studentId" element={<LandingPage view="student-profile" />} />
+          <Route path="/assessments/metrics/:mode" element={<AssessmentMetricsPage />} />
           <Route path="/certificate-request" element={<CertificateRequestPage />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="*" element={<Navigate to={profilePath} replace />} />

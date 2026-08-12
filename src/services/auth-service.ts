@@ -1,6 +1,6 @@
 const tokenStorageKey = 'itac.student.token';
 const profileStorageKey = 'itac.student.profile';
-export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+export const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api').replace(/\/$/, '');
 
 type StoredStudentProfile = {
   id?: string;
@@ -32,10 +32,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
+    credentials: 'include',
   });
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem(tokenStorageKey);
+      localStorage.removeItem(profileStorageKey);
+    }
     throw new Error(payload.error || payload.message || 'Request failed.');
   }
 
@@ -48,11 +53,16 @@ async function downloadFile(path: string, fallbackFilename: string, options: Req
     headers: {
       ...(options.headers || {}),
     },
+    credentials: 'include',
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem(tokenStorageKey);
+      localStorage.removeItem(profileStorageKey);
+    }
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.message || 'Download failed.');
+    throw new Error(payload.error || payload.message || 'Download failed.');
   }
 
   const blob = await response.blob();
@@ -136,7 +146,7 @@ export const AuthServiceApi = {
     storeStudentProfileSnapshot(profile);
     return profile;
   },
-  async updateMyProfile<T>(profileUpdate: Record<string, string>) {
+  async updateMyProfile<T>(profileUpdate: Record<string, string | null>) {
     const token = this.getToken();
     const profile = await request<T>('/students/me', {
       method: 'PATCH',
@@ -152,6 +162,14 @@ export const AuthServiceApi = {
     const token = this.getToken();
     const filename = mode === 'lead' ? 'ITAC_student_lead_assessments.xlsx' : 'ITAC_student_all_assessments.xlsx';
     return downloadFile(`/students/me/assessments/${mode}.xlsx`, filename, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+  async getAssessmentMetrics<T>(mode: 'all' | 'lead') {
+    const token = this.getToken();
+    return request<T>(`/students/me/assessments/${mode}/metrics`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
