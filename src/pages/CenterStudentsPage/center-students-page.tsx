@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
-import { ArrowLeft, Camera, Eye, ExternalLink, FileQuestion, Hash, Mail, ShieldCheck, User, Users } from 'lucide-react';
+import { ArrowLeft, Camera, Eye, ExternalLink, FileQuestion, Mail, ShieldCheck, User, Users } from 'lucide-react';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
 import { studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
