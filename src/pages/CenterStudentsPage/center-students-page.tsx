@@ -499,9 +499,11 @@ function CenterValue({ center, satelliteCenter }: { center: string; satelliteCen
   return (
     <div>
       <div>{formatValue(center)}</div>
-      <div className="mt-1">
-        Satellite Center: <span className="font-semibold">{satelliteCenter || '-'}</span>
-      </div>
+      {satelliteCenter && (
+        <div className="mt-1">
+          Satellite Center: <span className="font-semibold">{satelliteCenter}</span>
+        </div>
+      )}
     </div>
   );
 }
