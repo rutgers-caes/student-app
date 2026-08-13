@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
-import { ArrowLeft, Building, Camera, Eye, ExternalLink, Factory, FileQuestion, Hash, Mail, ShieldCheck, User, Users } from 'lucide-react';
+import { ArrowLeft, Award, Building, Camera, Eye, ExternalLink, Factory, FileQuestion, Mail, ShieldCheck, User, Users } from 'lucide-react';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
 import { studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
 import type { CenterStudentProfile, StudentAssessment, StudentProfile } from '@/types/student-profile';
+import { formatDateOnlyTokensForDisplay } from '@/utils/date-only-utils';
 import {
   getAssessmentTotal,
   getCurrentCenterStudent,
@@ -327,9 +328,15 @@ function CenterStudentDirectory({ portalStudent }: { portalStudent: PortalStuden
 
 function CertificateStatus({ portalStudent, student }: { portalStudent: PortalStudent; student: CenterStudent | StudentProfile }) {
   const hasCertificate = Boolean(student.certificateStatus) && student.certificateStatus.toLowerCase() !== 'no certificate';
+  const certificateStatus = formatDateOnlyTokensForDisplay(student.certificateStatus);
 
   if (hasCertificate) {
-    return student.certificateStatus;
+    return (
+      <span className="inline-flex items-center gap-2 font-semibold text-slate-950">
+        <Award aria-label="Certificate received" className="shrink-0 text-doe-blue" size={25} />
+        {certificateStatus}
+      </span>
+    );
   }
 
   return (
