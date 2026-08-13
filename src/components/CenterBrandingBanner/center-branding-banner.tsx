@@ -7,7 +7,7 @@ export function CenterBrandingBanner({ actions, student }: { actions?: ReactNode
   const center = centers.find((centerOption) => centerOption.code === centerCode);
   const primaryColor = center?.colors[0] || '#607aa8';
   const centerName = center?.name || student.center.split('|')[1]?.trim() || student.center;
-  const satellite = getSatelliteCenter(satelliteCode);
+  const satellite = student.satelliteCenterName || getSatelliteCenter(satelliteCode);
   const website = center?.website.trim();
   const logoContent = center?.logos.main ? <img className="h-full w-full object-contain p-1" src={center.logos.main} alt="" /> : centerCode;
   const logoClassName =
@@ -35,7 +35,7 @@ export function CenterBrandingBanner({ actions, student }: { actions?: ReactNode
           )}
           <div className="min-w-0">
             <h1 className="text-[clamp(18px,2vw,24px)] font-bold leading-tight tracking-normal text-white">{centerName}</h1>
-            {satellite && <p className="mt-0.5 text-xs font-semibold text-white/80">Satellite: {satellite}</p>}
+            {satellite && <p className="mt-0.5 text-xs font-semibold text-white/80">Satellite Center: {satellite}</p>}
           </div>
         </div>
         {actions && <div className="flex flex-wrap items-center gap-3">{actions}</div>}

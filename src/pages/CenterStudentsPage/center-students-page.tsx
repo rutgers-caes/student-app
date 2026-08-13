@@ -4,7 +4,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
 import { ArrowLeft, Building, Camera, Eye, ExternalLink, Factory, FileQuestion, Hash, Mail, ShieldCheck, User, Users } from 'lucide-react';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
-import { profilePath, studentProfilePath } from '@/data/navigation';
+import { studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
 import type { CenterStudentProfile, StudentAssessment, StudentProfile } from '@/types/student-profile';
 import {
@@ -121,7 +121,7 @@ function StudentProfileCard({
   const assessmentRecordsForStudent = getStudentAssessmentRecords(portalStudent, student);
   const assessmentDateRange = getAssessmentDateRange(assessmentRecordsForStudent);
   const assessmentsBeforeLead = getAssessmentsBeforeLead(assessmentRecordsForStudent);
-  const satelliteCenter = getSatelliteCenter(student.centerCode);
+  const satelliteCenter = student.satelliteCenterName || getSatelliteCenter(student.centerCode);
   const studentProfileImage = uploadedProfileImage || student.photoBase64 || '';
 
   async function handleProfilePhotoChange(event: ChangeEvent<HTMLInputElement>) {
@@ -529,9 +529,11 @@ function CenterValue({ center, satelliteCenter }: { center: string; satelliteCen
   return (
     <div>
       <div>{formatValue(center)}</div>
-      <div className="mt-1">
-        Satellite Center: <span className="font-semibold">{satelliteCenter || '-'}</span>
-      </div>
+      {satelliteCenter && (
+        <div className="mt-1">
+          Satellite Center: <span className="font-semibold">{satelliteCenter}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -660,7 +662,6 @@ function getSatelliteCenter(centerCode: string) {
   const satellite = centerCode.split('-')[1]?.trim();
   return satellite && satellite.toLowerCase() !== 'itac' ? satellite : '';
 }
-
 export function StudentStatusBadge({ compact = false, status }: { compact?: boolean; status: string }) {
   const isActive = status.toLowerCase() === 'active';
 
