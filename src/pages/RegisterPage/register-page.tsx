@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AuthServiceApi } from '@/services/auth-service';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const emailNotFoundMessage = 'Email Not In Database, Please Contact Center';
+const emailNotFoundMessage = 'Not registered yet. Please register.';
 
 export default function RegisterPage() {
   const navigate = useNavigate();

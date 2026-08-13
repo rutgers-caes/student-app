@@ -7,6 +7,8 @@ import { AboutStudentPortalModal } from '@/components/AboutStudentPortalModal';
 import { AuthServiceApi } from '@/services/auth-service';
 import { profilePath, studentProfilePath } from '@/data/navigation';
 
+const notRegisteredMessage = 'Not registered yet. Please register.';
+
 export default function LoginPage() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [email, setEmail] = useState('');
@@ -25,7 +27,7 @@ export default function LoginPage() {
       const student = result.student as { name?: string };
       navigate(student.name ? studentProfilePath(student.name) : profilePath);
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Unable to log in.');
+      setStatusMessage(formatLoginError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -103,4 +105,20 @@ export default function LoginPage() {
       {isAboutOpen && <AboutStudentPortalModal onClose={() => setIsAboutOpen(false)} />}
     </main>
   );
+}
+
+function formatLoginError(error: unknown) {
+  const message = error instanceof Error ? error.message : '';
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes('not registered') ||
+    normalizedMessage.includes('not found') ||
+    normalizedMessage.includes('no student') ||
+    normalizedMessage.includes('email not in database')
+  ) {
+    return notRegisteredMessage;
+  }
+
+  return message || 'Unable to log in.';
 }
