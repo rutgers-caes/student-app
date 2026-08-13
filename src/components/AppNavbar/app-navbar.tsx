@@ -11,10 +11,16 @@ type AppNavbarProps = {
   profileImage?: string;
 };
 
+type NavbarProfile = {
+  photoBase64?: string;
+};
+
 export function AppNavbar({ firstName = 'Student', profileHref = profilePath, profileImage = '' }: AppNavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [jobPostingCount, setJobPostingCount] = useState<number>();
+  const [fallbackProfileImage, setFallbackProfileImage] = useState('');
   const navItems = useMemo(() => getNavItems(jobPostingCount), [jobPostingCount]);
+  const avatarImage = profileImage || fallbackProfileImage;
 
   useEffect(() => {
     let isMounted = true;
@@ -35,6 +41,31 @@ export function AppNavbar({ firstName = 'Student', profileHref = profilePath, pr
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (profileImage || !AuthServiceApi.getToken()) {
+      setFallbackProfileImage('');
+      return undefined;
+    }
+
+    AuthServiceApi.getMyProfile<NavbarProfile>()
+      .then((profile) => {
+        if (isMounted) {
+          setFallbackProfileImage(profile.photoBase64 || '');
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setFallbackProfileImage('');
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profileImage]);
 
   return (
     <header className="bg-primary px-5 text-primary-text shadow-[0_2px_10px_rgb(20_30_44_/_18%)]">
@@ -59,7 +90,7 @@ export function AppNavbar({ firstName = 'Student', profileHref = profilePath, pr
             className="inline-flex items-center gap-2 rounded-full bg-white/12 py-1.5 pl-1.5 pr-3 text-sm font-semibold text-white no-underline hover:bg-white/20 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-white/50"
             to={profileHref}
           >
-            <Avatar imageSrc={profileImage} />
+            <Avatar imageSrc={avatarImage} />
             <span>{firstName}</span>
           </Link>
           <Link
@@ -102,7 +133,7 @@ export function AppNavbar({ firstName = 'Student', profileHref = profilePath, pr
               to={profileHref}
               onClick={() => setIsMenuOpen(false)}
             >
-              <Avatar imageSrc={profileImage} />
+              <Avatar imageSrc={avatarImage} />
               <span>{firstName}</span>
             </Link>
             <Link

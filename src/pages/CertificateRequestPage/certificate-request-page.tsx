@@ -34,12 +34,12 @@ export default function CertificateRequestPage() {
                 <ShieldCheck aria-hidden="true" className="text-doe-blue" size={22} />
                 Student Certificate Requirements
               </h2>
-              <ol className="grid gap-2 pl-6">
+              <ol className="grid list-decimal gap-2 pl-6">
                 <li>Completion of a minimum of 2 semesters or summers with ITAC</li>
                 <li>Completion of a minimum of 6 plant assessments</li>
                 <li>
                   Demonstrates a minimum of 8 of the 10 Core Skills
-                  <ul className="mt-2 grid gap-1 pl-6 text-base leading-7">
+                  <ul className="mt-2 grid list-disc gap-1 pl-6 text-base leading-7">
                     <li>Assessment Recommendation Identification</li>
                     <li>Report Writing</li>
                     <li>Energy Savings Calculations</li>
@@ -61,7 +61,7 @@ export default function CertificateRequestPage() {
                 <FileText aria-hidden="true" className="text-doe-blue" size={22} />
                 How to Request
               </h2>
-              <ol className="grid gap-3 pl-6">
+              <ol className="grid list-decimal gap-3 pl-6">
                 <li>
                   Complete the student certificate request form and have it signed by your center director.
                   <div className="mt-3">

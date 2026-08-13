@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
-import { ArrowLeft, Camera, Eye, ExternalLink, FileQuestion, Hash, Mail, ShieldCheck, User, Users } from 'lucide-react';
+import { ArrowLeft, Building, Camera, Eye, ExternalLink, Factory, FileQuestion, Hash, Mail, ShieldCheck, User, Users } from 'lucide-react';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
 import { profilePath, studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
@@ -359,7 +359,7 @@ function AssessmentPanel({ allowDownloads = false, portalStudent, student }: { a
         <div>
           <h2 className="flex items-center gap-2 text-xl font-semibold text-slate-950">
             <ShieldCheck aria-hidden="true" size={22} />
-            Assessments
+            Approved Assessments
           </h2>
           <p className="mt-2 text-sm font-semibold text-slate-600">
             {hasAssessments ? `${assessmentTotalForStudent} connected assessments` : 'Not currently connected with any assessments.'}
@@ -400,48 +400,59 @@ function AssessmentPanel({ allowDownloads = false, portalStudent, student }: { a
 
       {hasAssessments ? (
         <div className="overflow-x-auto">
-          <div className="grid min-w-[760px] grid-cols-[150px_260px_minmax(360px,1fr)] border-b border-slate-200 px-5 py-3 text-sm font-bold uppercase tracking-[0.04em] text-slate-500">
+          <div className="grid min-w-[820px] grid-cols-[190px_260px_minmax(360px,1fr)] border-b border-slate-200 px-5 py-3 text-sm font-bold uppercase tracking-[0.04em] text-slate-500">
             <div>ID</div>
             <div>Faculty/Staff</div>
             <div>Student Participants</div>
           </div>
-          {assessmentRecordsForStudent.map((assessment, index) => (
-            <div
-              className={`grid min-w-[760px] grid-cols-[150px_260px_minmax(360px,1fr)] gap-4 border-b border-slate-200 px-5 py-4 last:border-b-0 ${
-                index % 2 === 0 ? 'bg-slate-50' : 'bg-white'
-              }`}
-              key={assessment.id}
-            >
-              <div>
-                <a
-                  className="text-lg font-bold text-doe-blue underline underline-offset-4"
-                  href={`https://itac.university/assessment/${assessment.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {assessment.id}
-                </a>
-                <p className="mt-1 text-base font-semibold text-slate-950">{formatValue(assessment.date)}</p>
+          {assessmentRecordsForStudent.map((assessment, index) => {
+            const displayDates = getAssessmentDisplayDates(assessment);
+
+            return (
+              <div
+                className={`grid min-w-[820px] grid-cols-[190px_260px_minmax(360px,1fr)] gap-4 border-b border-slate-200 px-5 py-4 last:border-b-0 ${
+                  index % 2 === 0 ? 'bg-slate-50' : 'bg-white'
+                }`}
+                key={assessment.id}
+              >
+                <div>
+                  <div className="grid grid-cols-[105px_32px] items-center gap-2">
+                    <a
+                      className="text-lg font-bold text-doe-blue underline underline-offset-4"
+                      href={`https://itac.university/assessment/${assessment.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {assessment.id}
+                    </a>
+                    <AssessmentTypeIcon assessmentType={assessment.assessmentType} />
+                  </div>
+                  <div className="mt-1 flex flex-col gap-0.5 text-base font-semibold text-slate-950">
+                    {displayDates.length > 0
+                      ? displayDates.map((date) => <span key={`${assessment.id}-${date}`}>{date}</span>)
+                      : '-'}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {getFacultyStaffParticipants(assessment).map((facultyStaff) => (
+                    <PersonPill key={`${assessment.id}-${facultyStaff.participantId}-${facultyStaff.name}`} name={facultyStaff.name} role={facultyStaff.role} />
+                  ))}
+                </div>
+                <div className="flex flex-wrap content-start items-start gap-2">
+                  {sortParticipantsByRole(assessment.participants).map((participant) => (
+                    <PersonPill
+                      highlighted={String(participant.participantId) === student.id}
+                      imageSrc={participant.photoBase64}
+                      key={`${assessment.id}-${participant.participantId}`}
+                      muted={String(participant.participantId) !== student.id}
+                      name={participant.name}
+                      role={participant.role}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                {getFacultyStaffParticipants(assessment).map((facultyStaff) => (
-                  <PersonPill key={`${assessment.id}-${facultyStaff.participantId}-${facultyStaff.name}`} name={facultyStaff.name} role={facultyStaff.role} />
-                ))}
-              </div>
-              <div className="flex flex-wrap content-start items-start gap-2">
-                {sortParticipantsByRole(assessment.participants).map((participant) => (
-                  <PersonPill
-                    highlighted={String(participant.participantId) === student.id}
-                    imageSrc={participant.photoBase64}
-                    key={`${assessment.id}-${participant.participantId}`}
-                    muted={String(participant.participantId) !== student.id}
-                    name={participant.name}
-                    role={participant.role}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <p className="px-5 py-5 text-slate-600">Not currently connected with any assessments.</p>
@@ -473,6 +484,25 @@ function PersonPill({
       {role && <span className={`text-xs font-bold ${roleStyle.roleText}`}>{role}</span>}
       <span className={muted ? 'truncate text-slate-600' : 'truncate'}>{name}</span>
     </div>
+  );
+}
+
+function AssessmentTypeIcon({ assessmentType }: { assessmentType: StudentAssessment['assessmentType'] }) {
+  const isCommercial = assessmentType === 'Commercial';
+  const Icon = isCommercial ? Building : Factory;
+  const label = isCommercial ? 'Commercial Assessment' : 'Industrial Assessment';
+
+  return (
+    <span
+      className="group relative inline-flex h-7 w-7 shrink-0 items-center justify-center text-slate-950"
+      aria-label={label}
+      title={label}
+    >
+      <Icon aria-hidden="true" size={20} strokeWidth={2.75} />
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-950 px-2 py-1 text-xs font-semibold text-white opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-visible:opacity-100">
+        {label}
+      </span>
+    </span>
   );
 }
 
@@ -528,7 +558,7 @@ function formatNode(value: ReactNode) {
 
 function getAssessmentDateRange(assessments: StudentAssessment[]) {
   const dates = assessments
-    .map((assessment) => parseDisplayDate(assessment.date))
+    .flatMap((assessment) => getAssessmentDisplayDates(assessment).map(parseDisplayDate))
     .filter((date): date is Date => Boolean(date))
     .sort((first, second) => first.getTime() - second.getTime());
 
@@ -544,8 +574,8 @@ function getAssessmentDateRange(assessments: StudentAssessment[]) {
 
 function getAssessmentsBeforeLead(assessments: StudentAssessment[]) {
   const sortedAssessments = [...assessments].sort((first, second) => {
-    const firstDate = parseDisplayDate(first.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-    const secondDate = parseDisplayDate(second.date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    const firstDate = getAssessmentSortTime(first);
+    const secondDate = getAssessmentSortTime(second);
     return firstDate - secondDate || first.id.localeCompare(second.id);
   });
   const firstLeadIndex = sortedAssessments.findIndex((assessment) => assessment.studentRole === 'Lead');
@@ -555,6 +585,19 @@ function getAssessmentsBeforeLead(assessments: StudentAssessment[]) {
 function formatAssessmentsBeforeLead(value: number | null) {
   if (value === null) return '-';
   return `${value} ${value === 1 ? 'assessment' : 'assessments'} before lead`;
+}
+
+function getAssessmentDisplayDates(assessment: StudentAssessment) {
+  return assessment.visitDates?.length ? assessment.visitDates : [assessment.date || ''].filter(Boolean);
+}
+
+function getAssessmentSortTime(assessment: StudentAssessment) {
+  const dates = getAssessmentDisplayDates(assessment)
+    .map(parseDisplayDate)
+    .filter((date): date is Date => Boolean(date))
+    .sort((first, second) => first.getTime() - second.getTime());
+
+  return dates[0]?.getTime() ?? Number.MAX_SAFE_INTEGER;
 }
 
 function parseDisplayDate(value: string) {

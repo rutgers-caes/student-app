@@ -1,12 +1,61 @@
 const tokenStorageKey = 'itac.student.token';
 const profileStorageKey = 'itac.student.profile';
+const cacheTtlMs = 5 * 60 * 1000;
 export const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api').replace(/\/$/, '');
 
 type StoredStudentProfile = {
   id?: string;
   firstName?: string;
   name?: string;
+  photoBase64?: string;
 };
+
+type CacheEntry<T> = {
+  expiresAt: number;
+  promise?: Promise<T>;
+  value?: T;
+};
+
+const responseCache = new Map<string, CacheEntry<unknown>>();
+
+function getCacheKey(path: string, token = '') {
+  return `${token || 'public'}:${path}`;
+}
+
+function clearCache(prefix = '') {
+  if (!prefix) {
+    responseCache.clear();
+    return;
+  }
+
+  for (const key of responseCache.keys()) {
+    if (key.includes(prefix)) responseCache.delete(key);
+  }
+}
+
+async function cachedRequest<T>(path: string, options: RequestInit = {}, token = '') {
+  const key = getCacheKey(path, token);
+  const now = Date.now();
+  const cached = responseCache.get(key) as CacheEntry<T> | undefined;
+
+  if (cached && cached.expiresAt > now) {
+    if ('value' in cached) return cached.value as T;
+    if (cached.promise) return cached.promise;
+  }
+
+  const promise = request<T>(path, options)
+    .then((value) => {
+      responseCache.set(key, { expiresAt: Date.now() + cacheTtlMs, value });
+      return value;
+    })
+    .catch((error) => {
+      responseCache.delete(key);
+      throw error;
+    });
+
+  responseCache.set(key, { expiresAt: now + cacheTtlMs, promise });
+  return promise;
+}
 
 function storeStudentProfileSnapshot(student: unknown) {
   if (!student || typeof student !== 'object') {
@@ -21,6 +70,7 @@ function storeStudentProfileSnapshot(student: unknown) {
       id: profile.id,
       firstName: profile.firstName,
       name: profile.name,
+      photoBase64: profile.photoBase64,
     }),
   );
 }
@@ -40,6 +90,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     if (response.status === 401) {
       localStorage.removeItem(tokenStorageKey);
       localStorage.removeItem(profileStorageKey);
+      clearCache();
     }
     throw new Error(payload.error || payload.message || 'Request failed.');
   }
@@ -60,6 +111,7 @@ async function downloadFile(path: string, fallbackFilename: string, options: Req
     if (response.status === 401) {
       localStorage.removeItem(tokenStorageKey);
       localStorage.removeItem(profileStorageKey);
+      clearCache();
     }
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload.error || payload.message || 'Download failed.');
@@ -98,6 +150,7 @@ export const AuthServiceApi = {
 
     localStorage.setItem(tokenStorageKey, result.token);
     storeStudentProfileSnapshot(result.student);
+    clearCache();
     return result;
   },
   async requestRegistration(email: string) {
@@ -107,7 +160,7 @@ export const AuthServiceApi = {
     });
   },
   async getPublicJobPostingCount() {
-    const result = await request<{ count: number }>('/jobs/public/count');
+    const result = await cachedRequest<{ count: number }>('/jobs/public/count');
     return result.count;
   },
   async completeRegistration(token: string, password: string) {
@@ -138,11 +191,11 @@ export const AuthServiceApi = {
   },
   async getMyProfile<T>() {
     const token = this.getToken();
-    const profile = await request<T>('/students/me', {
+    const profile = await cachedRequest<T>('/students/me', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    }, token);
     storeStudentProfileSnapshot(profile);
     return profile;
   },
@@ -155,7 +208,12 @@ export const AuthServiceApi = {
       },
       body: JSON.stringify(profileUpdate),
     });
+    clearCache('/students/');
     storeStudentProfileSnapshot(profile);
+    responseCache.set(getCacheKey('/students/me', token), {
+      expiresAt: Date.now() + cacheTtlMs,
+      value: profile,
+    });
     return profile;
   },
   async downloadMyAssessments(mode: 'all' | 'lead') {
@@ -169,22 +227,23 @@ export const AuthServiceApi = {
   },
   async getAssessmentMetrics<T>(mode: 'all' | 'lead') {
     const token = this.getToken();
-    return request<T>(`/students/me/assessments/${mode}/metrics`, {
+    return cachedRequest<T>(`/students/me/assessments/${mode}/metrics`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    }, token);
   },
   async getStudentProfile<T>(studentId: string) {
     const token = this.getToken();
-    return request<T>(`/students/${studentId}`, {
+    return cachedRequest<T>(`/students/${studentId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
+    }, token);
   },
   async logout() {
     localStorage.removeItem(tokenStorageKey);
     localStorage.removeItem(profileStorageKey);
+    clearCache();
   },
 };

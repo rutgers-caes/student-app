@@ -335,9 +335,15 @@ function EditProfileView({
         </section>
 
         <div className="mt-7 flex flex-wrap items-center justify-between gap-4">
-          <p className={savedMessage.includes('Please') ? 'text-sm font-semibold text-red-700' : 'text-sm font-semibold text-green-700'}>
-            {savedMessage || 'Required fields are marked with an asterisk.'}
-          </p>
+          {savedMessage ? (
+            <p className={savedMessage.includes('Please') ? 'text-sm font-semibold text-red-700' : 'text-sm font-semibold text-green-700'}>
+              {savedMessage}
+            </p>
+          ) : (
+            <p className="text-sm font-semibold text-slate-700">
+              Required fields are marked with an asterisk <span className="text-red-700">(*)</span>
+            </p>
+          )}
           <Button color={canSave ? 'blue' : 'gray'} disabled={!canSave} size="3" type="submit">
             {savedMessage === 'Profile updated.' || savedMessage === 'Profile and password updated.' ? <CheckCircle2 aria-hidden="true" size={18} /> : <Save aria-hidden="true" size={18} />}
             {isSaving ? 'Saving' : 'Save Profile'}

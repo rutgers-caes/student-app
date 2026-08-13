@@ -14,7 +14,9 @@ export type StudentAssessmentParticipant = {
 
 export type StudentAssessment = {
   id: string;
-  date: string;
+  date?: string;
+  visitDates: string[];
+  assessmentType: 'Industrial' | 'Commercial';
   facultyStaff: string;
   facultyStaffParticipants: StudentAssessmentParticipant[];
   studentRole: 'Lead' | 'Safety' | 'Other';
