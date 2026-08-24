@@ -255,6 +255,30 @@ export const AuthServiceApi = {
       },
     }, token);
   },
+  async getStudentSurvey<T>(kind: 'entry' | 'exit') {
+    const token = this.getToken();
+    return cachedRequest<T>(`/students/me/surveys/${kind}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }, token);
+  },
+  async saveStudentSurvey<T>(kind: 'entry' | 'exit', answers: unknown) {
+    const token = this.getToken();
+    const survey = await request<T>(`/students/me/surveys/${kind}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(answers),
+    });
+    clearCache(`/students/me/surveys/${kind}`);
+    responseCache.set(getCacheKey(`/students/me/surveys/${kind}`, token), {
+      expiresAt: Date.now() + cacheTtlMs,
+      value: survey,
+    });
+    return survey;
+  },
   async getStudentProfile<T>(studentId: string) {
     const token = this.getToken();
     return cachedRequest<T>(`/students/${studentId}`, {

@@ -26,9 +26,8 @@ This is a brief UI progress overview for `student-app`. It separates sections th
 | Section | Status | What is missing |
 | --- | --- | --- |
 | Password Reset | Waiting on backend/API | The page collects an email and shows a success-style message, but it does not call an API yet. |
-| Portal Survey | Waiting on backend/API | The survey UI is built, but submit only logs answers to the browser console. Needs API endpoint and persistence. |
-| Entry Survey | Waiting | Navigation includes `/entry-survey`, but no route/page is registered in `App.tsx`. |
-| Exit Survey | Waiting | Navigation includes `/exit-survey`, but no route/page is registered in `App.tsx`. |
+| Entry Survey | API-wired | Calls `/students/me/surveys/entry` to load and save the authenticated student's survey answers. |
+| Exit Survey | API-wired | Calls `/students/me/surveys/exit` to load and save the authenticated student's survey answers. |
 | Profile Photo Upload | Waiting on persistence | The profile page lets the student pick an image and preview it locally, but it does not upload/save it to the backend yet. Imported/base64 photos can display when returned by the API. |
 | Graduate Student Type Save | Needs small fix/check | The edit profile form requires `graduateStudentType` when applicable, but `buildProfileUpdatePayload` does not currently include it in the PATCH payload. |
 | Missing Center Handling | Waiting on backend/data consistency | UI can display center data it receives, but complete imported legacy coverage depends on service DB center mappings matching legacy center symbols. |
@@ -47,12 +46,11 @@ This is a brief UI progress overview for `student-app`. It separates sections th
 | `/students/:studentId` | Peer student profile |
 | `/certificate-request` | Certificate request instructions |
 | `/faq` | FAQ |
-| `/portal-survey` | Portal survey UI |
+| `/entry-survey` | Entry Survey |
+| `/exit-survey` | Exit Survey |
 
 ## Priority Next Steps
 
 1. Add backend/API integration for password reset.
-2. Add backend/API integration for portal survey submission.
-3. Add or remove nav entries for Entry Survey and Exit Survey depending on scope.
-4. Persist profile photo upload to the backend if students should manage their own photos.
-5. Include `graduateStudentType` in the edit profile PATCH payload if the backend supports that field.
+2. Persist profile photo upload to the backend if students should manage their own photos.
+3. Include `graduateStudentType` in the edit profile PATCH payload if the backend supports that field.
