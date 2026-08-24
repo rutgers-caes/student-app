@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Button, TextField } from '@radix-ui/themes';
 import { Check, LogIn, Send } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { PasswordRequirements, PasswordRule, isPasswordValid } from '@/components/PasswordRequirements';
 import { AuthServiceApi } from '@/services/auth-service';
 
 export default function PasswordResetPage() {
@@ -16,7 +17,11 @@ export default function PasswordResetPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const linkToken = searchParams.get('token') || '';
-  const activeToken = linkToken || setupToken;
+  const localSetupToken = import.meta.env.DEV ? setupToken : '';
+  const activeToken = linkToken || localSetupToken;
+  const passwordStarted = Boolean(password || confirmPassword);
+  const passwordValid = isPasswordValid(password);
+  const confirmPasswordMatches = Boolean(password) && password === confirmPassword;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +30,9 @@ export default function PasswordResetPage() {
     try {
       const result = await AuthServiceApi.requestPasswordReset(email.trim());
       setSubmittedEmail(email.trim());
-      if (result.directPasswordSetupAllowed && result.setupToken) setSetupToken(result.setupToken);
+      if (import.meta.env.DEV && result.directPasswordSetupAllowed && result.setupToken) {
+        setSetupToken(result.setupToken);
+      }
       setStatusMessage(result.message);
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Unable to request password reset.');
@@ -34,7 +41,7 @@ export default function PasswordResetPage() {
 
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (password !== confirmPassword) { setStatusMessage('Passwords do not match.'); return; }
+    if (!passwordValid || !confirmPasswordMatches) { setStatusMessage('Please complete the password rules before updating your password.'); return; }
     setIsSubmitting(true);
     try {
       const result = await AuthServiceApi.completePasswordReset(activeToken, password);
@@ -102,16 +109,17 @@ export default function PasswordResetPage() {
             {activeToken && <form className="mx-auto mt-8 w-full max-w-[560px] border-t border-slate-200 pt-7" onSubmit={handlePasswordSubmit}>
               <p className="mb-5 text-slate-700">Create a new password for your student account.</p>
               <TextField.Root type="password" size="3" autoComplete="new-password" placeholder="New password" required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
+              {passwordStarted && <PasswordRequirements password={password} />}
               <div className="mt-3"><TextField.Root type="password" size="3" autoComplete="new-password" placeholder="Confirm new password" required minLength={8} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>
-              <p className="mt-3 text-sm text-slate-600">Use at least 8 characters with at least 1 number and 1 special symbol.</p>
-              <div className="mt-5 flex justify-center"><Button size="3" type="submit" disabled={isSubmitting || !password || password !== confirmPassword}><Check size={19} />Update Password</Button></div>
+              {passwordStarted && <PasswordRule complete={confirmPasswordMatches} label={confirmPasswordMatches ? 'Passwords match' : 'Passwords must match'} />}
+              <div className="mt-5 flex justify-center"><Button size="3" type="submit" disabled={isSubmitting || !passwordValid || !confirmPasswordMatches}><Check size={19} />Update Password</Button></div>
             </form>}
             {statusMessage && <div className="mx-7 mb-6 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-center text-sm text-slate-800" role="status">{statusMessage}</div>}
           </div>
         </section>
       </main>
 
-      {submittedEmail && !setupToken && (
+      {submittedEmail && !activeToken && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 px-5" role="dialog" aria-modal="true" aria-labelledby="reset-confirmation-title">
           <div className="w-full max-w-[460px] rounded-lg border border-slate-200 bg-white p-6 text-center shadow-[0_24px_70px_rgb(15_23_42_/_22%)]">
             <h2 className="text-2xl font-bold text-slate-950" id="reset-confirmation-title">

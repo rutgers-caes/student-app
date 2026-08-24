@@ -1,12 +1,14 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Select, TextField } from '@radix-ui/themes';
-import { ArrowLeft, CheckCircle2, Circle, Edit3, Save } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Edit3, Save } from 'lucide-react';
 import { AppNavbar } from '@/components/AppNavbar';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
+import { PasswordRequirements, PasswordRule, getPasswordRules } from '@/components/PasswordRequirements';
 import { CenterStudentsPage, PeerStudentProfilePage, StudentProfileView, StudentStatusBadge } from '@/pages/CenterStudentsPage';
 import { profilePath, studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
+import { statusTextClassNames } from '@/styles/patterns';
 import type { StudentProfile } from '@/types/student-profile';
 
 type LandingPageProps = {
@@ -57,11 +59,7 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
   );
 
   const emailsAreDifferent = form.email.trim().toLowerCase() !== form.alternateEmail.trim().toLowerCase();
-  const passwordRules = {
-    length: form.password.length >= 8,
-    number: /\d/.test(form.password),
-    symbol: /[^A-Za-z0-9]/.test(form.password),
-  };
+  const passwordRules = getPasswordRules(form.password);
   const passwordStarted = Boolean(form.currentPassword || form.password || form.confirmPassword);
   const passwordValid = Object.values(passwordRules).every(Boolean);
   const confirmPasswordMatches = Boolean(form.password) && form.password === form.confirmPassword;
@@ -136,7 +134,6 @@ export default function LandingPage({ view = 'profile' }: LandingPageProps) {
           canSave={canSave && !isSaving}
           confirmPasswordMatches={confirmPasswordMatches}
           emailsAreDifferent={emailsAreDifferent}
-          passwordRules={passwordRules}
           passwordStarted={passwordStarted}
           profileHref={profileHref}
           savedMessage={savedMessage}
@@ -228,7 +225,6 @@ function EditProfileView({
   canSave,
   confirmPasswordMatches,
   emailsAreDifferent,
-  passwordRules,
   passwordStarted,
   profileHref,
   savedMessage,
@@ -241,7 +237,6 @@ function EditProfileView({
   canSave: boolean;
   confirmPasswordMatches: boolean;
   emailsAreDifferent: boolean;
-  passwordRules: Record<'length' | 'number' | 'symbol', boolean>;
   passwordStarted: boolean;
   profileHref: string;
   savedMessage: string;
@@ -303,6 +298,7 @@ function EditProfileView({
               autoComplete="off"
               label="Current password"
               name="current-password"
+              requiredLabel
               type="password"
               value={form.currentPassword}
               onChange={(value) => onUpdate('currentPassword', value)}
@@ -312,17 +308,19 @@ function EditProfileView({
                 autoComplete="new-password"
                 label="New password"
                 name="new-password"
+                requiredLabel
                 type="password"
                 value={form.password}
                 onChange={(value) => onUpdate('password', value)}
               />
-              {passwordStarted && <PasswordRuleList rules={passwordRules} />}
+              {passwordStarted && <PasswordRequirements password={form.password} />}
             </div>
             <div>
               <TextInput
                 autoComplete="new-password"
                 label="Confirm password"
                 name="confirm-new-password"
+                requiredLabel
                 type="password"
                 value={form.confirmPassword}
                 onChange={(value) => onUpdate('confirmPassword', value)}
@@ -336,11 +334,11 @@ function EditProfileView({
 
         <div className="mt-7 flex flex-wrap items-center justify-between gap-4">
           {savedMessage ? (
-            <p className={savedMessage.includes('Please') ? 'text-sm font-semibold text-red-700' : 'text-sm font-semibold text-green-700'}>
+            <p className={savedMessage.includes('Please') ? statusTextClassNames.error : statusTextClassNames.success}>
               {savedMessage}
             </p>
           ) : (
-            <p className="text-sm font-semibold text-slate-700">
+            <p className={statusTextClassNames.muted}>
               Required fields are marked with an asterisk <span className="text-red-700">(*)</span>
             </p>
           )}
@@ -351,27 +349,6 @@ function EditProfileView({
         </div>
       </form>
     </main>
-  );
-}
-
-function PasswordRuleList({ rules }: { rules: Record<'length' | 'number' | 'symbol', boolean> }) {
-  return (
-    <div className="mt-3 space-y-1">
-      <PasswordRule complete={rules.length} label="At least 8 characters" />
-      <PasswordRule complete={rules.number} label="At least 1 number" />
-      <PasswordRule complete={rules.symbol} label="At least 1 special symbol" />
-    </div>
-  );
-}
-
-function PasswordRule({ complete, label }: { complete: boolean; label: string }) {
-  const Icon = complete ? CheckCircle2 : Circle;
-
-  return (
-    <p className={complete ? 'flex items-center gap-2 text-sm font-semibold text-green-700' : 'flex items-center gap-2 text-sm font-semibold text-slate-500'}>
-      <Icon aria-hidden="true" size={14} />
-      {label}
-    </p>
   );
 }
 
@@ -387,6 +364,7 @@ function TextInput({
   onChange,
   placeholder,
   required = false,
+  requiredLabel = false,
   type = 'text',
 }: {
   autoComplete?: TextInputAutoComplete;
@@ -396,13 +374,14 @@ function TextInput({
   onChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
+  requiredLabel?: boolean;
   type?: TextInputType;
 }) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-semibold text-slate-700">
         {label}
-        {required && <span className="text-red-600"> *</span>}
+        {(required || requiredLabel) && <span className="text-red-600"> *</span>}
       </span>
       <TextField.Root
         autoComplete={autoComplete}

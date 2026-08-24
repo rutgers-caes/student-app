@@ -18,6 +18,16 @@ type CacheEntry<T> = {
 
 const responseCache = new Map<string, CacheEntry<unknown>>();
 
+export class ApiRequestError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+  }
+}
+
 function getCacheKey(path: string, token = '') {
   return `${token || 'public'}:${path}`;
 }
@@ -31,6 +41,20 @@ function clearCache(prefix = '') {
   for (const key of responseCache.keys()) {
     if (key.includes(prefix)) responseCache.delete(key);
   }
+}
+
+function getRequestBearerToken(options: RequestInit) {
+  const headers = new Headers(options.headers || {});
+  const authorization = headers.get('Authorization') || '';
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] || '';
+}
+
+function clearStoredSessionForToken(token: string) {
+  if (!token || token !== localStorage.getItem(tokenStorageKey)) return;
+  localStorage.removeItem(tokenStorageKey);
+  localStorage.removeItem(profileStorageKey);
+  clearCache();
 }
 
 async function cachedRequest<T>(path: string, options: RequestInit = {}, token = '') {
@@ -76,6 +100,7 @@ function storeStudentProfileSnapshot(student: unknown) {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const requestToken = getRequestBearerToken(options);
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...options,
     headers: {
@@ -88,17 +113,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401) {
-      localStorage.removeItem(tokenStorageKey);
-      localStorage.removeItem(profileStorageKey);
-      clearCache();
+      clearStoredSessionForToken(requestToken);
     }
-    throw new Error(payload.error || payload.message || 'Request failed.');
+    throw new ApiRequestError(payload.error || payload.message || 'Request failed.', response.status);
   }
 
   return payload as T;
 }
 
 async function downloadFile(path: string, fallbackFilename: string, options: RequestInit = {}) {
+  const requestToken = getRequestBearerToken(options);
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...options,
     headers: {
@@ -109,12 +133,10 @@ async function downloadFile(path: string, fallbackFilename: string, options: Req
 
   if (!response.ok) {
     if (response.status === 401) {
-      localStorage.removeItem(tokenStorageKey);
-      localStorage.removeItem(profileStorageKey);
-      clearCache();
+      clearStoredSessionForToken(requestToken);
     }
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || payload.message || 'Download failed.');
+    throw new ApiRequestError(payload.error || payload.message || 'Download failed.', response.status);
   }
 
   const blob = await response.blob();

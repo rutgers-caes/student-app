@@ -1,31 +1,32 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button, TextField } from '@radix-ui/themes';
-import { Check, CheckCircle2, Circle, LogIn, Send } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AuthServiceApi } from '@/services/auth-service';
+import { Check, LogIn, Send } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { PasswordRequirements, PasswordRule, isPasswordValid } from '@/components/PasswordRequirements';
+import { ApiRequestError, AuthServiceApi } from '@/services/auth-service';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const emailNotFoundMessage = 'Not registered yet. Please register.';
+const retryMessage = 'Unable to verify that email right now. Please try again in a moment.';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [searchParams] = useSearchParams();
+  const linkToken = searchParams.get('token') || '';
   const [setupToken, setSetupToken] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [isRegisterAllowed, setIsRegisterAllowed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const emailIsValid = emailPattern.test(email.trim());
-  const passwordRules = {
-    length: password.length >= 8,
-    number: /\d/.test(password),
-    symbol: /[^A-Za-z0-9]/.test(password),
-  };
   const passwordStarted = Boolean(password || confirmPassword);
-  const passwordValid = Object.values(passwordRules).every(Boolean);
+  const passwordValid = isPasswordValid(password);
   const confirmPasswordMatches = Boolean(password) && password === confirmPassword;
+  const localSetupToken = import.meta.env.DEV ? setupToken : '';
+  const activeToken = linkToken || localSetupToken;
 
   const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -40,16 +41,12 @@ export default function RegisterPage() {
 
     try {
       const result = await AuthServiceApi.requestRegistration(email.trim());
-      const canSetPasswordDirectly = Boolean(result.approved && result.directPasswordSetupAllowed && result.setupToken);
-      setIsRegisterAllowed(canSetPasswordDirectly);
-      if (canSetPasswordDirectly) {
-        setStatusMessage(result.message);
-        setSetupToken(result.setupToken || '');
-      } else {
-        setStatusMessage(result.message || emailNotFoundMessage);
-      }
-    } catch {
-      setStatusMessage(emailNotFoundMessage);
+      const canSetPasswordForLocalTesting = Boolean(import.meta.env.DEV && result.approved && result.directPasswordSetupAllowed && result.setupToken);
+      setIsRegisterAllowed(Boolean(result.approved));
+      setSetupToken(canSetPasswordForLocalTesting ? result.setupToken || '' : '');
+      setStatusMessage(result.message || emailNotFoundMessage);
+    } catch (error) {
+      setStatusMessage(isEmailNotFoundError(error) ? emailNotFoundMessage : retryMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -67,7 +64,7 @@ export default function RegisterPage() {
     setStatusMessage('');
 
     try {
-      const result = await AuthServiceApi.completeRegistration(setupToken, password);
+      const result = await AuthServiceApi.completeRegistration(activeToken, password);
       setStatusMessage(`${result.message} You can now log in.`);
       setTimeout(() => navigate('/'), 900);
     } catch (error) {
@@ -146,7 +143,7 @@ export default function RegisterPage() {
                 </div>
               </form>
 
-              {isRegisterAllowed && setupToken && (
+              {activeToken && (
                 <form className="mx-auto mt-6 w-full max-w-[540px] border-t border-slate-200 pt-6" onSubmit={handlePasswordSubmit}>
                   <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
                     <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Password</span>
@@ -161,7 +158,7 @@ export default function RegisterPage() {
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                       />
-                      {passwordStarted && <PasswordRuleList rules={passwordRules} />}
+                      {passwordStarted && <PasswordRequirements password={password} />}
                     </div>
                   </label>
 
@@ -179,7 +176,7 @@ export default function RegisterPage() {
                         onChange={(event) => setConfirmPassword(event.target.value)}
                       />
                       {passwordStarted && (
-                        <PasswordRule complete={confirmPasswordMatches} label={confirmPasswordMatches ? 'Passwords match' : 'Passwords must match'} />
+                        <PasswordRequirementsMatchRule complete={confirmPasswordMatches} />
                       )}
                     </div>
                   </label>
@@ -217,23 +214,12 @@ export default function RegisterPage() {
   );
 }
 
-function PasswordRuleList({ rules }: { rules: Record<'length' | 'number' | 'symbol', boolean> }) {
-  return (
-    <div className="mt-3 space-y-1">
-      <PasswordRule complete={rules.length} label="At least 8 characters" />
-      <PasswordRule complete={rules.number} label="At least 1 number" />
-      <PasswordRule complete={rules.symbol} label="At least 1 special symbol" />
-    </div>
-  );
+function isEmailNotFoundError(error: unknown) {
+  if (error instanceof ApiRequestError && error.status >= 500) return false;
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+  return message.includes('not registered') || message.includes('not found') || message.includes('no student') || message.includes('email not in database');
 }
 
-function PasswordRule({ complete, label }: { complete: boolean; label: string }) {
-  const Icon = complete ? CheckCircle2 : Circle;
-
-  return (
-    <p className={complete ? 'flex items-center gap-2 text-sm font-semibold text-green-700' : 'flex items-center gap-2 text-sm font-semibold text-slate-500'}>
-      <Icon aria-hidden="true" size={14} />
-      {label}
-    </p>
-  );
+function PasswordRequirementsMatchRule({ complete }: { complete: boolean }) {
+  return <PasswordRule complete={complete} label={complete ? 'Passwords match' : 'Passwords must match'} />;
 }

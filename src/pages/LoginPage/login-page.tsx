@@ -24,8 +24,8 @@ export default function LoginPage() {
 
     try {
       const result = await AuthServiceApi.login(email, password);
-      const student = result.student as { name?: string };
-      navigate(student.name ? studentProfilePath(student.name) : profilePath);
+      const studentName = getLoginStudentName(result.student);
+      navigate(studentName ? studentProfilePath(studentName) : profilePath);
     } catch (error) {
       setStatusMessage(formatLoginError(error));
     } finally {
@@ -105,6 +105,12 @@ export default function LoginPage() {
       {isAboutOpen && <AboutStudentPortalModal onClose={() => setIsAboutOpen(false)} />}
     </main>
   );
+}
+
+function getLoginStudentName(student: unknown) {
+  if (!student || typeof student !== 'object') return '';
+  const name = (student as { name?: unknown }).name;
+  return typeof name === 'string' ? name : '';
 }
 
 function formatLoginError(error: unknown) {
