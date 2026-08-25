@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
 import { centers } from '@/data/CenterBranding';
+import { getSatelliteCenter } from '@/pages/CenterStudentsPage/center-students-formatters';
+import { typographyClassNames } from '@/styles/typography';
 import type { CenterStudentProfile, StudentProfile } from '@/types/student-profile';
 
 export function CenterBrandingBanner({ actions, student }: { actions?: ReactNode; student: CenterStudentProfile | StudentProfile }) {
   const [centerCode, satelliteCode] = student.centerCode.split('-');
   const center = centers.find((centerOption) => centerOption.code === centerCode);
-  const primaryColor = center?.colors[0] || '#607aa8';
+  const primaryColor = center?.colors[0] || 'var(--color-primary)';
   const centerName = center?.name || student.center.split('|')[1]?.trim() || student.center;
-  const satellite = student.satelliteCenterName || getSatelliteCenter(satelliteCode);
+  const satellite = student.satelliteCenterName || getSatelliteCenter(student.centerCode || satelliteCode || '');
   const website = center?.website.trim();
   const logoContent = center?.logos.main ? <img className="h-full w-full object-contain p-1" src={center.logos.main} alt="" /> : centerCode;
   const logoClassName =
@@ -34,7 +36,7 @@ export function CenterBrandingBanner({ actions, student }: { actions?: ReactNode
             </div>
           )}
           <div className="min-w-0">
-            <h1 className="text-[clamp(18px,2vw,24px)] font-bold leading-tight tracking-normal text-white">{centerName}</h1>
+            <h1 className={typographyClassNames.bannerTitle}>{centerName}</h1>
             {satellite && <p className="mt-0.5 text-xs font-semibold text-white/80">Satellite Center: {satellite}</p>}
           </div>
         </div>
@@ -42,9 +44,4 @@ export function CenterBrandingBanner({ actions, student }: { actions?: ReactNode
       </div>
     </section>
   );
-}
-
-function getSatelliteCenter(satelliteCode: string | undefined) {
-  const satellite = satelliteCode?.trim();
-  return satellite && satellite.toLowerCase() !== 'itac' ? satellite : '';
 }

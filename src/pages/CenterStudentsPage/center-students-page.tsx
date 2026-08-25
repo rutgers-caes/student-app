@@ -2,6 +2,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { Button } from '@radix-ui/themes';
 import { ArrowLeft } from 'lucide-react';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
+import { StatusNotice } from '@/components/ui';
 import { studentProfilePath } from '@/data/navigation';
 import type { StudentProfile } from '@/types/student-profile';
 import { getCurrentCenterStudent } from './center-students-utils';
@@ -42,8 +43,12 @@ export function PeerStudentProfilePage({ portalStudent }: { portalStudent: Porta
     return <Navigate to={profileHref} replace />;
   }
 
-  if (!student && profileLoadState === 'loading') {
+  if (!student && (profileLoadState === 'idle' || profileLoadState === 'loading')) {
     return <PageMessage message="Loading student profile..." />;
+  }
+
+  if (profileLoadState === 'error') {
+    return <PageMessage tone="error" message="Unable to load assessment details for this student. Please try again later." />;
   }
 
   if (!student) {
@@ -84,10 +89,10 @@ export function CenterStudentsPage({ portalStudent }: { portalStudent: PortalStu
   );
 }
 
-function PageMessage({ message }: { message: string }) {
+function PageMessage({ message, tone = 'info' }: { message: string; tone?: 'info' | 'error' }) {
   return (
     <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-      <p className="rounded-lg border border-blue-100 bg-blue-50 px-5 py-4 text-center text-sm font-semibold text-blue-800">{message}</p>
+      <StatusNotice tone={tone}>{message}</StatusNotice>
     </main>
   );
 }

@@ -1,7 +1,9 @@
 import { HelpCircle, Mail } from 'lucide-react';
-import { AppNavbar } from '@/components/AppNavbar';
+import { Card, PageShell } from '@/components/ui';
 import { studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
+import { iconSizes } from '@/styles/iconography';
+import { typographyClassNames } from '@/styles/typography';
 import type { StudentProfile } from '@/types/student-profile';
 
 const faqItems = [
@@ -31,17 +33,16 @@ export default function FAQPage() {
   const portalStudent = AuthServiceApi.getStoredStudentProfile<StudentProfile>();
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb]">
-      <AppNavbar firstName={portalStudent?.firstName || 'Student'} profileHref={portalStudent ? studentProfilePath(portalStudent.name) : '/profile'} profileImage={portalStudent?.photoBase64 || ''} />
+    <PageShell firstName={portalStudent?.firstName || 'Student'} profileHref={portalStudent ? studentProfilePath(portalStudent.name) : '/profile'} profileImage={portalStudent?.photoBase64 || ''}>
       <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <Card as="section" className="overflow-hidden">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-full bg-blue-100 text-doe-blue">
-                <HelpCircle aria-hidden="true" size={22} />
+                <HelpCircle aria-hidden="true" size={iconSizes.md} />
               </span>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500">Student Portal</p>
+                <p className={typographyClassNames.eyebrow}>Student Portal</p>
                 <h1 className="text-2xl font-semibold text-slate-950">FAQ</h1>
               </div>
             </div>
@@ -49,7 +50,7 @@ export default function FAQPage() {
 
           <div className="px-6 py-5">
             <p className="flex flex-wrap items-center gap-2 text-xl text-slate-800">
-              <Mail aria-hidden="true" className="text-doe-blue" size={22} />
+              <Mail aria-hidden="true" className="text-doe-blue" size={iconSizes.md} />
               Still have a question not covered below? Email us at:
               <a className="font-semibold text-doe-blue underline underline-offset-4" href="mailto:students@iac.university">
                 students@iac.university
@@ -65,8 +66,8 @@ export default function FAQPage() {
               </article>
             ))}
           </div>
-        </section>
+        </Card>
       </main>
-    </div>
+    </PageShell>
   );
 }

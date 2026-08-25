@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Button, TextField } from '@radix-ui/themes';
-import { Check, LogIn, Send } from 'lucide-react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { PasswordRequirements, PasswordRule, isPasswordValid } from '@/components/PasswordRequirements';
+import { Button } from '@radix-ui/themes';
+import { useMutation } from '@tanstack/react-query';
+import { Send } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { TokenPasswordForm } from '@/components/TokenPasswordForm';
+import { FormActionRow, FormField, PageShell, StatusNotice } from '@/components/ui';
+import { useTokenGatedPasswordForm } from '@/hooks/use-token-gated-password-form';
 import { ApiRequestError, AuthServiceApi } from '@/services/auth-service';
+import { iconSizes } from '@/styles/iconography';
+import { typographyClassNames } from '@/styles/typography';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const emailNotFoundMessage = 'Not registered yet. Please register.';
@@ -12,44 +17,58 @@ const retryMessage = 'Unable to verify that email right now. Please try again in
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const linkToken = searchParams.get('token') || '';
   const [setupToken, setSetupToken] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [isRegisterAllowed, setIsRegisterAllowed] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    activeToken,
+    confirmPassword,
+    confirmPasswordMatches,
+    password,
+    passwordStarted,
+    passwordValid,
+    resetPasswordFields,
+    setConfirmPassword,
+    setPassword,
+  } = useTokenGatedPasswordForm(setupToken);
   const emailIsValid = emailPattern.test(email.trim());
-  const passwordStarted = Boolean(password || confirmPassword);
-  const passwordValid = isPasswordValid(password);
-  const confirmPasswordMatches = Boolean(password) && password === confirmPassword;
-  const localSetupToken = import.meta.env.DEV ? setupToken : '';
-  const activeToken = linkToken || localSetupToken;
+  const requestRegistrationMutation = useMutation({
+    mutationFn: () => AuthServiceApi.requestRegistration(email.trim()),
+    onSuccess: (result) => {
+      // TODO: Remove this DEV-only shortcut before production; setup tokens should arrive only via emailed links.
+      if (import.meta.env.DEV && result.approved && result.directPasswordSetupAllowed && result.setupToken) {
+        setSetupToken(result.setupToken);
+      }
+      setIsRegisterAllowed(Boolean(result.approved));
+      setStatusMessage(result.message || emailNotFoundMessage);
+    },
+    onError: (error) => {
+      setStatusMessage(isEmailNotFoundError(error) ? emailNotFoundMessage : retryMessage);
+    },
+  });
+  const completeRegistrationMutation = useMutation({
+    mutationFn: () => AuthServiceApi.completeRegistration(activeToken, password),
+    onSuccess: (result) => {
+      setStatusMessage(`${result.message} You can now log in.`);
+      setTimeout(() => navigate('/'), 900);
+    },
+    onError: (error) => {
+      setStatusMessage(error instanceof Error ? error.message : 'Unable to complete registration.');
+    },
+  });
+  const isSubmitting = requestRegistrationMutation.isPending || completeRegistrationMutation.isPending;
 
   const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!emailIsValid) return;
 
-    setIsSubmitting(true);
     setStatusMessage('');
     setIsRegisterAllowed(false);
     setSetupToken('');
-    setPassword('');
-    setConfirmPassword('');
+    resetPasswordFields();
 
-    try {
-      const result = await AuthServiceApi.requestRegistration(email.trim());
-      const canSetPasswordForLocalTesting = Boolean(import.meta.env.DEV && result.approved && result.directPasswordSetupAllowed && result.setupToken);
-      setIsRegisterAllowed(Boolean(result.approved));
-      setSetupToken(canSetPasswordForLocalTesting ? result.setupToken || '' : '');
-      setStatusMessage(result.message || emailNotFoundMessage);
-    } catch (error) {
-      setStatusMessage(isEmailNotFoundError(error) ? emailNotFoundMessage : retryMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
+    requestRegistrationMutation.mutate();
   };
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -60,40 +79,17 @@ export default function RegisterPage() {
       return;
     }
 
-    setIsSubmitting(true);
     setStatusMessage('');
-
-    try {
-      const result = await AuthServiceApi.completeRegistration(activeToken, password);
-      setStatusMessage(`${result.message} You can now log in.`);
-      setTimeout(() => navigate('/'), 900);
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Unable to complete registration.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    completeRegistrationMutation.mutate();
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_50%_18%,rgb(96_122_168_/_8%),transparent_28%),linear-gradient(180deg,#fff_0%,#f8fafc_100%)]">
-      <header className="mx-auto flex min-h-[76px] w-full max-w-[1180px] items-center justify-between gap-4 px-5 py-4">
-        <Link className="inline-flex min-w-0 items-center text-slate-950 no-underline" to="/" aria-label="ITAC Student Portal login">
-          <img className="block w-[58px] shrink-0" src="/Docs/DOE_blue_seal_logo-head.png" alt="U.S. Department of Energy" />
-          <span className="ml-3 text-[clamp(20px,2.2vw,28px)] font-bold leading-tight tracking-normal max-sm:text-lg">ITAC Student and Alumni Portal</span>
-        </Link>
-        <Button asChild size="3">
-          <Link to="/">
-            <LogIn aria-hidden="true" size={18} />
-            Back to Login
-          </Link>
-        </Button>
-      </header>
-
+    <PageShell variant="auth">
       <main className="grid place-items-center px-5 pb-8 pt-3">
         <section className="flex w-full max-w-[760px] flex-col items-center" aria-labelledby="register-title">
           <div className="mt-5 w-full max-w-[680px]">
             <h1
-              className="text-[clamp(32px,4vw,46px)] font-bold leading-tight tracking-normal text-slate-950"
+              className={typographyClassNames.pageTitle}
               id="register-title"
             >
               Request Registration
@@ -121,96 +117,51 @@ export default function RegisterPage() {
               </div>
 
               <form className="mx-auto mt-8 w-full max-w-[560px] border-t border-slate-200 pt-7" onSubmit={handleEmailSubmit}>
-                <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
-                  <span className="text-right text-[17px] font-medium text-slate-700 max-sm:text-left">Email Address</span>
-                  <TextField.Root
-                    type="email"
-                    size="3"
-                    autoComplete="email"
-                    placeholder="name@example.com"
-                    required
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                </label>
+                <FormField
+                  autoComplete="email"
+                  label="Email Address"
+                  layout="row"
+                  onChange={setEmail}
+                  placeholder="name@example.com"
+                  required
+                  type="email"
+                  value={email}
+                />
 
-                <div className="mb-2 grid grid-cols-[150px_minmax(0,1fr)] gap-4 max-sm:grid-cols-1 max-sm:gap-2">
-                  <span aria-hidden="true" />
+                <FormActionRow>
                   <Button type="submit" disabled={isSubmitting || !emailIsValid}>
-                    <Send aria-hidden="true" size={19} />
+                  <Send aria-hidden="true" size={iconSizes.sm} />
                     {isSubmitting ? 'Checking' : 'Request Registration'}
                   </Button>
-                </div>
+                </FormActionRow>
               </form>
 
               {activeToken && (
-                <form className="mx-auto mt-6 w-full max-w-[540px] border-t border-slate-200 pt-6" onSubmit={handlePasswordSubmit}>
-                  <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
-                    <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Password</span>
-                    <div>
-                      <TextField.Root
-                        type="password"
-                        size="3"
-                        autoComplete="new-password"
-                        placeholder="Create a password"
-                        required
-                        minLength={8}
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                      />
-                      {passwordStarted && <PasswordRequirements password={password} />}
-                    </div>
-                  </label>
-
-                  <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
-                    <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Confirm</span>
-                    <div>
-                      <TextField.Root
-                        type="password"
-                        size="3"
-                        autoComplete="new-password"
-                        placeholder="Confirm password"
-                        required
-                        minLength={8}
-                        value={confirmPassword}
-                        onChange={(event) => setConfirmPassword(event.target.value)}
-                      />
-                      {passwordStarted && (
-                        <PasswordRequirementsMatchRule complete={confirmPasswordMatches} />
-                      )}
-                    </div>
-                  </label>
-
-                  <p className="mb-4 ml-[166px] text-sm leading-6 text-slate-600 max-sm:ml-0">
-                    At least 8 characters<br />
-                    At least 1 number<br />
-                    At least 1 special symbol
-                  </p>
-
-                  <div className="mb-2 ml-[90px] mt-1 flex flex-wrap items-center justify-center gap-3 max-sm:ml-0">
-                    <Button type="submit" disabled={isSubmitting || !passwordValid || !confirmPasswordMatches}>
-                      <Check aria-hidden="true" size={19} />
-                      {isSubmitting ? 'Creating' : 'Create Password'}
-                    </Button>
-                  </div>
-                </form>
+                <TokenPasswordForm
+                  confirmPassword={confirmPassword}
+                  confirmPasswordMatches={confirmPasswordMatches}
+                  isSubmitting={isSubmitting}
+                  onConfirmPasswordChange={setConfirmPassword}
+                  onPasswordChange={setPassword}
+                  onSubmit={handlePasswordSubmit}
+                  password={password}
+                  passwordStarted={passwordStarted}
+                  passwordValid={passwordValid}
+                  submitLabel="Create Password"
+                  submittingLabel="Creating"
+                />
               )}
 
               {statusMessage && (
-                <div
-                  className={`mt-4 rounded-md border px-4 py-3 text-center text-[15px] leading-6 ${
-                    isRegisterAllowed ? 'border-blue-100 bg-blue-50 text-slate-800' : 'border-red-100 bg-red-50 font-semibold text-red-700'
-                  }`}
-                  role="status"
-                >
+                <StatusNotice className="mt-4" tone={isRegisterAllowed ? 'info' : 'error'}>
                   {statusMessage}
-                </div>
+                </StatusNotice>
               )}
             </div>
           </div>
         </section>
       </main>
-    </div>
+    </PageShell>
   );
 }
 
@@ -218,8 +169,4 @@ function isEmailNotFoundError(error: unknown) {
   if (error instanceof ApiRequestError && error.status >= 500) return false;
   const message = error instanceof Error ? error.message.toLowerCase() : '';
   return message.includes('not registered') || message.includes('not found') || message.includes('no student') || message.includes('email not in database');
-}
-
-function PasswordRequirementsMatchRule({ complete }: { complete: boolean }) {
-  return <PasswordRule complete={complete} label={complete ? 'Passwords match' : 'Passwords must match'} />;
 }

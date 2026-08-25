@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LogOut, Menu, User, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getNavItems, profilePath } from '@/data/navigation';
 import type { NavItem } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
+import { queryKeys } from '@/services/query-client';
+import { iconSizes } from '@/styles/iconography';
 
 type AppNavbarProps = {
   firstName?: string;
@@ -17,55 +20,18 @@ type NavbarProfile = {
 
 export function AppNavbar({ firstName = 'Student', profileHref = profilePath, profileImage = '' }: AppNavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [jobPostingCount, setJobPostingCount] = useState<number>();
-  const [fallbackProfileImage, setFallbackProfileImage] = useState('');
+  const queryClient = useQueryClient();
+  const { data: jobPostingCount } = useQuery({
+    queryKey: queryKeys.jobPostingCount,
+    queryFn: () => AuthServiceApi.getPublicJobPostingCount(),
+  });
+  const { data: fallbackProfile } = useQuery({
+    queryKey: queryKeys.myProfile,
+    queryFn: () => AuthServiceApi.getMyProfile<NavbarProfile>(),
+    enabled: Boolean(!profileImage && AuthServiceApi.getToken()),
+  });
   const navItems = useMemo(() => getNavItems(jobPostingCount), [jobPostingCount]);
-  const avatarImage = profileImage || fallbackProfileImage;
-
-  useEffect(() => {
-    let isMounted = true;
-
-    AuthServiceApi.getPublicJobPostingCount()
-      .then((count) => {
-        if (isMounted && Number.isFinite(count)) {
-          setJobPostingCount(count);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setJobPostingCount(undefined);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    if (profileImage || !AuthServiceApi.getToken()) {
-      setFallbackProfileImage('');
-      return undefined;
-    }
-
-    AuthServiceApi.getMyProfile<NavbarProfile>()
-      .then((profile) => {
-        if (isMounted) {
-          setFallbackProfileImage(profile.photoBase64 || '');
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setFallbackProfileImage('');
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [profileImage]);
+  const avatarImage = profileImage || fallbackProfile?.photoBase64 || '';
 
   return (
     <header className="bg-primary px-5 text-primary-text shadow-[0_2px_10px_rgb(20_30_44_/_18%)]">
@@ -96,9 +62,12 @@ export function AppNavbar({ firstName = 'Student', profileHref = profilePath, pr
           <Link
             className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-white/15 focus-visible:bg-white/15 focus-visible:outline-none"
             to="/"
-            onClick={() => AuthServiceApi.logout()}
+            onClick={() => {
+              AuthServiceApi.logout();
+              queryClient.clear();
+            }}
           >
-            <LogOut aria-hidden="true" size={18} />
+            <LogOut aria-hidden="true" size={iconSizes.sm} />
             Logout
           </Link>
         </div>
@@ -110,7 +79,7 @@ export function AppNavbar({ firstName = 'Student', profileHref = profilePath, pr
           aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           onClick={() => setIsMenuOpen((current) => !current)}
         >
-          {isMenuOpen ? <X aria-hidden="true" size={25} /> : <Menu aria-hidden="true" size={26} />}
+          {isMenuOpen ? <X aria-hidden="true" size={iconSizes.lg} /> : <Menu aria-hidden="true" size={iconSizes.lg} />}
         </button>
       </div>
 
@@ -141,10 +110,11 @@ export function AppNavbar({ firstName = 'Student', profileHref = profilePath, pr
               to="/"
               onClick={() => {
                 AuthServiceApi.logout();
+                queryClient.clear();
                 setIsMenuOpen(false);
               }}
             >
-              <LogOut aria-hidden="true" size={18} />
+              <LogOut aria-hidden="true" size={iconSizes.sm} />
               Logout
             </Link>
           </div>
@@ -161,7 +131,7 @@ function Avatar({ imageSrc }: { imageSrc: string }) {
 
   return (
     <span className="grid h-9 w-9 place-items-center rounded-full border border-white/50 bg-white/90 text-slate-500" aria-hidden="true">
-      <User size={18} />
+      <User aria-hidden="true" size={iconSizes.sm} />
     </span>
   );
 }
