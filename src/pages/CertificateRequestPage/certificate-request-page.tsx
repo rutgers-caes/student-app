@@ -1,8 +1,10 @@
 import { Button } from '@radix-ui/themes';
 import { Award, Download, FileText, Mail, ShieldCheck } from 'lucide-react';
-import { AppNavbar } from '@/components/AppNavbar';
+import { Card, PageShell, StatusNotice } from '@/components/ui';
 import { studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
+import { iconSizes } from '@/styles/iconography';
+import { typographyClassNames } from '@/styles/typography';
 import type { StudentProfile } from '@/types/student-profile';
 
 const certificateApplicationPath = '/application/Certificate%20Application.docx';
@@ -12,17 +14,16 @@ export default function CertificateRequestPage() {
   const portalStudent = AuthServiceApi.getStoredStudentProfile<StudentProfile>();
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb]">
-      <AppNavbar firstName={portalStudent?.firstName || 'Student'} profileHref={portalStudent ? studentProfilePath(portalStudent.name) : '/profile'} profileImage={portalStudent?.photoBase64 || ''} />
+    <PageShell firstName={portalStudent?.firstName || 'Student'} profileHref={portalStudent ? studentProfilePath(portalStudent.name) : '/profile'} profileImage={portalStudent?.photoBase64 || ''}>
       <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <Card as="section" className="overflow-hidden">
           <header className="border-b border-slate-200 bg-slate-50 px-6 py-5">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-full bg-blue-100 text-doe-blue">
-                <Award aria-hidden="true" size={22} />
+                <Award aria-hidden="true" size={iconSizes.md} />
               </span>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-500">Student Certificate</p>
+                <p className={typographyClassNames.eyebrow}>Student Certificate</p>
                 <h1 className="text-2xl font-semibold text-slate-950">Current Student Certificate Request Process</h1>
               </div>
             </div>
@@ -31,7 +32,7 @@ export default function CertificateRequestPage() {
           <div className="grid gap-6 px-6 py-6 text-lg leading-8 text-slate-800">
             <section>
               <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-slate-950">
-                <ShieldCheck aria-hidden="true" className="text-doe-blue" size={22} />
+                <ShieldCheck aria-hidden="true" className="text-doe-blue" size={iconSizes.md} />
                 Student Certificate Requirements
               </h2>
               <ol className="grid list-decimal gap-2 pl-6">
@@ -58,7 +59,7 @@ export default function CertificateRequestPage() {
 
             <section className="border-t border-slate-200 pt-6">
               <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-slate-950">
-                <FileText aria-hidden="true" className="text-doe-blue" size={22} />
+                <FileText aria-hidden="true" className="text-doe-blue" size={iconSizes.md} />
                 How to Request
               </h2>
               <ol className="grid list-decimal gap-3 pl-6">
@@ -67,7 +68,7 @@ export default function CertificateRequestPage() {
                   <div className="mt-3">
                     <Button asChild color="blue" size="3">
                       <a href={certificateApplicationPath}>
-                        <Download aria-hidden="true" size={18} />
+                        <Download aria-hidden="true" size={iconSizes.sm} />
                         Student Certificate Request Form
                       </a>
                     </Button>
@@ -77,7 +78,7 @@ export default function CertificateRequestPage() {
                   Your center director can then submit it directly through the ITAC website. If you have already received a certificate and would
                   like to request an updated one, email a new application to{' '}
                   <a className="inline-flex items-center gap-1 font-semibold text-doe-blue underline underline-offset-4" href={`mailto:${certificateEmail}`}>
-                    <Mail aria-hidden="true" size={17} />
+                    <Mail aria-hidden="true" size={iconSizes.sm} />
                     {certificateEmail}
                   </a>
                   .
@@ -86,13 +87,13 @@ export default function CertificateRequestPage() {
                 <li>Once returned, certificates with a DOE signature will be sent directly to the ITAC director.</li>
               </ol>
 
-              <p className="mt-6 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-base font-semibold text-slate-800">
+              <StatusNotice className="mt-6 text-base font-semibold">
                 Rutgers and DOE review progress will be noted on your main profile page.
-              </p>
+              </StatusNotice>
             </section>
           </div>
-        </section>
+        </Card>
       </main>
-    </div>
+    </PageShell>
   );
 }

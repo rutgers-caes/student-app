@@ -1,44 +1,63 @@
-import React, { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 
-export const ERROR_TOAST_DURATION = 10000;
-export const DEFAULT_TOAST_DURATION = 5000;
+export const ERROR_TOAST_DURATION: number = 10000; // 30 seconds
+export const DEFAULT_TOAST_DURATION: number = 5000; // 5 seconds
 
-export type MessageLevel = 'Info' | 'Warn' | 'Error' | 'Success';
-
-type ToastPosition = 'top' | 'bottom';
-
-type ToastMessage = {
-  id: number;
-  type: MessageLevel;
-  message: string;
-  position: ToastPosition;
-  duration: number;
+export type MessageLevel = "Info" | "Warn" | "Error" | "Success";
+export type ToastPosition = "top" | "bottom";
+export type AppToast = {
+    id: number;
+    duration: number;
+    message: string;
+    position: ToastPosition;
+    style: CSSProperties;
+    type: MessageLevel;
 };
 
-const toastEventName = 'itac-student-toast';
+type ToastListener = (toast: AppToast) => void;
 
-const toastStyles: Record<MessageLevel, React.CSSProperties> = {
-  Success: { backgroundColor: '#049a58', color: '#fff' },
-  Error: { backgroundColor: '#8e2828', color: '#fff' },
-  Warn: { backgroundColor: '#ac8a00', color: '#fff' },
-  Info: { backgroundColor: '#009bfb', color: '#fff' },
-};
+const listeners = new Set<ToastListener>();
+
+export function subscribeToasts(listener: ToastListener) {
+    listeners.add(listener);
+    return () => {
+        listeners.delete(listener);
+    };
+}
+
+function getStyle(type: MessageLevel): CSSProperties {
+    let style: CSSProperties;
+    switch (type) {
+        case "Success":
+            style = { backgroundColor: "var(--color-status-success-solid)", color: "var(--color-primary-text)" };
+            break;
+        case "Error":
+            style = { backgroundColor: "var(--color-status-error-solid)", color: "var(--color-primary-text)" };
+            break;
+        case "Warn":
+            style = { backgroundColor: "var(--color-status-warn-solid)", color: "var(--color-primary-text)" };
+            break;
+        default:
+            style = { backgroundColor: "var(--color-status-info-solid)", color: "var(--color-primary-text)" };
+    }
+    return style;
+}
 
 export function showToast(
-  type: MessageLevel,
-  message: string,
-  position: ToastPosition = 'bottom',
-  duration: number = DEFAULT_TOAST_DURATION,
+    type: MessageLevel,
+    message: string,
+    position: ToastPosition = "bottom",
+    duration: number = DEFAULT_TOAST_DURATION,
 ) {
-  window.dispatchEvent(new CustomEvent<ToastMessage>(toastEventName, {
-    detail: {
-      id: Date.now() + Math.random(),
-      type,
-      message,
-      position,
-      duration,
-    },
-  }));
+    const toast = {
+        id: Date.now() + Math.random(),
+        duration,
+        message,
+        position,
+        style: getStyle(type),
+        type,
+    };
+    listeners.forEach((listener) => listener(toast));
 }
 
 export function errorToast(
@@ -59,83 +78,4 @@ export function warnToast(message: string, position: ToastPosition = 'bottom') {
 
 export function infoToast(message: string, position: ToastPosition = 'bottom') {
   showToast('Info', message, position);
-}
-
-export function ToastContainer() {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
-  useEffect(() => {
-    const handleToast = (event: Event) => {
-      const toast = (event as CustomEvent<ToastMessage>).detail;
-      setToasts((current) => [...current, toast]);
-      window.setTimeout(() => {
-        setToasts((current) => current.filter((item) => item.id !== toast.id));
-      }, toast.duration);
-    };
-
-    const handleDismiss = (event: Event) => {
-      const toastId = (event as CustomEvent<number>).detail;
-      setToasts((current) => current.filter((item) => item.id !== toastId));
-    };
-
-    window.addEventListener(toastEventName, handleToast);
-    window.addEventListener(`${toastEventName}:dismiss`, handleDismiss);
-    return () => {
-      window.removeEventListener(toastEventName, handleToast);
-      window.removeEventListener(`${toastEventName}:dismiss`, handleDismiss);
-    };
-  }, []);
-
-  return React.createElement(
-    React.Fragment,
-    null,
-    React.createElement(ToastStack, {
-      position: 'top',
-      toasts: toasts.filter((toast) => toast.position === 'top'),
-    }),
-    React.createElement(ToastStack, {
-      position: 'bottom',
-      toasts: toasts.filter((toast) => toast.position === 'bottom'),
-    }),
-  );
-}
-
-function ToastStack({ position, toasts }: { position: ToastPosition; toasts: ToastMessage[] }) {
-  if (!toasts.length) return null;
-
-  return React.createElement(
-    'div',
-    {
-      style: {
-        position: 'fixed',
-        right: 20,
-        [position]: 20,
-        zIndex: 1000,
-        display: 'grid',
-        gap: 10,
-        maxWidth: 360,
-      },
-      role: 'status',
-      'aria-live': 'polite',
-    },
-    toasts.map((toast) => React.createElement(
-      'button',
-      {
-        key: toast.id,
-        type: 'button',
-        onClick: () => window.dispatchEvent(new CustomEvent(`${toastEventName}:dismiss`, { detail: toast.id })),
-        style: {
-          ...toastStyles[toast.type],
-          border: 0,
-          borderRadius: 6,
-          boxShadow: '0 12px 28px rgb(15 23 42 / 22%)',
-          cursor: 'pointer',
-          font: '600 14px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          padding: '12px 14px',
-          textAlign: 'left',
-        },
-      },
-      toast.message,
-    )),
-  );
 }

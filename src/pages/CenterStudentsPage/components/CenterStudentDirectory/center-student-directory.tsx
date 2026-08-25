@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Badge, Button } from '@radix-ui/themes';
 import { ArrowLeft, Users } from 'lucide-react';
+import { Card } from '@/components/ui';
 import { studentProfilePath } from '@/data/navigation';
+import { iconSizes } from '@/styles/iconography';
 import { formatValue } from '../../center-students-formatters';
 import type { PortalStudent } from '../../center-students-types';
 import { getVisibleCenterStudents } from '../../center-students-utils';
@@ -15,11 +17,11 @@ export function CenterStudentDirectory({ portalStudent }: { portalStudent: Porta
   const profileHref = studentProfilePath(portalStudent.name);
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+    <Card as="section">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-slate-950">
-            <Users aria-hidden="true" size={24} />
+            <Users aria-hidden="true" size={iconSizes.lg} />
             List of All Center Students
           </h1>
           <p className="mt-1 text-sm font-semibold text-slate-500">{portalStudent.center} students only</p>
@@ -30,7 +32,7 @@ export function CenterStudentDirectory({ portalStudent }: { portalStudent: Porta
           </Badge>
           <Button asChild color="gray" variant="soft">
             <Link to={profileHref}>
-              <ArrowLeft aria-hidden="true" size={18} />
+              <ArrowLeft aria-hidden="true" size={iconSizes.sm} />
               Back to Profile
             </Link>
           </Button>
@@ -73,6 +75,6 @@ export function CenterStudentDirectory({ portalStudent }: { portalStudent: Porta
           </div>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }

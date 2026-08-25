@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Button } from '@radix-ui/themes';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
-import { AppNavbar } from '@/components/AppNavbar';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
+import { Card, PageShell, StatusNotice } from '@/components/ui';
 import { profilePath, studentProfilePath } from '@/data/navigation';
 import { AuthServiceApi } from '@/services/auth-service';
+import { queryKeys } from '@/services/query-client';
+import { iconSizes } from '@/styles/iconography';
 import type { StudentProfile } from '@/types/student-profile';
 
 type AssessmentMetricMode = 'all' | 'lead';
@@ -43,51 +45,40 @@ type AssessmentMetrics = {
 export default function AssessmentMetricsPage() {
   const { mode } = useParams();
   const metricsMode = mode === 'all' || mode === 'lead' ? mode : null;
-  const [portalStudent, setPortalStudent] = useState<StudentProfile | null>(null);
-  const [metrics, setMetrics] = useState<AssessmentMetrics | null>(null);
-  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
-
-  useEffect(() => {
-    let isMounted = true;
-
-    if (!metricsMode) return undefined;
-
-    Promise.all([
-      AuthServiceApi.getMyProfile<StudentProfile>(),
-      AuthServiceApi.getAssessmentMetrics<AssessmentMetrics>(metricsMode),
-    ])
-      .then(([profile, assessmentMetrics]) => {
-        if (!isMounted) return;
-        setPortalStudent(profile);
-        setMetrics(assessmentMetrics);
-        setLoadState('ready');
-      })
-      .catch((error) => {
-        if (!isMounted) return;
-        setLoadState(error instanceof Error && error.message.toLowerCase().includes('no ') ? 'empty' : 'error');
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [metricsMode]);
+  const [profileQuery, metricsQuery] = useQueries({
+    queries: [
+      {
+        queryKey: queryKeys.myProfile,
+        queryFn: () => AuthServiceApi.getMyProfile<StudentProfile>(),
+        enabled: Boolean(metricsMode),
+      },
+      {
+        queryKey: metricsMode ? queryKeys.assessmentMetrics(metricsMode) : ['assessmentMetrics', 'invalid'],
+        queryFn: () => AuthServiceApi.getAssessmentMetrics<AssessmentMetrics>(metricsMode as AssessmentMetricMode),
+        enabled: Boolean(metricsMode),
+      },
+    ],
+  });
 
   if (!metricsMode) {
     return <Navigate to={profilePath} replace />;
   }
 
+  const portalStudent = profileQuery.data ?? null;
+  const metrics = metricsQuery.data ?? null;
+  const metricsError = metricsQuery.error;
+  const metricsEmpty = metricsError instanceof Error && metricsError.message.toLowerCase().includes('no ');
   const profileHref = portalStudent ? studentProfilePath(portalStudent.name) : profilePath;
   const pageTitle = metricsMode === 'lead' ? 'As Lead Metrics' : 'All Assessments Metrics';
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb]">
-      <AppNavbar firstName={portalStudent?.firstName || 'Student'} profileHref={profileHref} profileImage={portalStudent?.photoBase64 || ''} />
+    <PageShell firstName={portalStudent?.firstName || 'Student'} profileHref={profileHref} profileImage={portalStudent?.photoBase64 || ''}>
       {portalStudent && (
         <CenterBrandingBanner
           actions={
             <Button asChild className="!bg-white !text-slate-950 hover:!bg-white/90" size="3">
               <Link to={profileHref}>
-                <ArrowLeft aria-hidden="true" size={18} />
+                <ArrowLeft aria-hidden="true" size={iconSizes.sm} />
                 Back to Profile
               </Link>
             </Button>
@@ -97,11 +88,11 @@ export default function AssessmentMetricsPage() {
       )}
 
       <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-        <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <Card as="section">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
             <div>
               <h1 className="flex items-center gap-2 text-2xl font-semibold text-slate-950">
-                <BarChart3 aria-hidden="true" size={24} />
+                <BarChart3 aria-hidden="true" size={iconSizes.lg} />
                 {pageTitle}
               </h1>
               <p className="mt-2 text-sm font-semibold text-slate-600">
@@ -110,13 +101,13 @@ export default function AssessmentMetricsPage() {
             </div>
           </div>
 
-          {loadState === 'loading' && <PageNotice message="Loading assessment metrics..." />}
-          {loadState === 'error' && <PageNotice tone="error" message="Unable to load assessment metrics." />}
-          {loadState === 'empty' && <PageNotice message={metricsMode === 'lead' ? 'No lead assessment metrics were found.' : 'No assessment metrics were found.'} />}
-          {loadState === 'ready' && metrics && <MetricsContent metrics={metrics} />}
-        </section>
+          {(profileQuery.isLoading || metricsQuery.isLoading) && <PageNotice message="Loading assessment metrics..." />}
+          {(profileQuery.isError || (metricsQuery.isError && !metricsEmpty)) && <PageNotice tone="error" message="Unable to load assessment metrics." />}
+          {metricsEmpty && <PageNotice message={metricsMode === 'lead' ? 'No lead assessment metrics were found.' : 'No assessment metrics were found.'} />}
+          {metrics && <MetricsContent metrics={metrics} />}
+        </Card>
       </main>
-    </div>
+    </PageShell>
   );
 }
 
@@ -183,14 +174,14 @@ function SpreadsheetMetrics({ metrics }: { metrics: AssessmentMetrics }) {
 
 function TableShell({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <Card className="overflow-hidden shadow-none">
       <div className="border-b border-slate-200 bg-slate-900 px-4 py-3 text-sm font-bold text-white">
         {title}
       </div>
       <div className="overflow-x-auto">
         {children}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -324,9 +315,9 @@ function ReportCell({ align = 'left', children }: { align?: 'left' | 'center' | 
 
 function PageNotice({ message, tone = 'info' }: { message: string; tone?: 'info' | 'error' }) {
   return (
-    <p className={tone === 'error' ? 'px-5 py-6 text-sm font-semibold text-red-700' : 'px-5 py-6 text-sm font-semibold text-slate-600'}>
+    <StatusNotice className="m-5" tone={tone}>
       {message}
-    </p>
+    </StatusNotice>
   );
 }
 

@@ -1,5 +1,7 @@
 import { Button, Dialog } from '@radix-ui/themes';
 import { X } from 'lucide-react';
+import { iconSizes } from '@/styles/iconography';
+import { typographyClassNames } from '@/styles/typography';
 
 type AboutStudentPortalModalProps = {
   onClose: () => void;
@@ -10,7 +12,7 @@ export function AboutStudentPortalModal({ onClose }: AboutStudentPortalModalProp
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
       <Dialog.Content className="max-w-[640px] overflow-hidden p-0">
         <div className="flex items-center justify-between gap-5 border-b border-slate-200 px-[22px] py-[18px]">
-          <Dialog.Title className="m-0 text-[clamp(22px,2.4vw,28px)] leading-tight text-slate-900">
+          <Dialog.Title className={`m-0 ${typographyClassNames.sectionTitle}`}>
             About the Student and Alumni Portal
           </Dialog.Title>
           <Dialog.Close>
@@ -19,7 +21,7 @@ export function AboutStudentPortalModal({ onClose }: AboutStudentPortalModalProp
               type="button"
               aria-label="Close"
             >
-              <X aria-hidden="true" size={28} />
+              <X aria-hidden="true" size={iconSizes.xl} />
             </button>
           </Dialog.Close>
         </div>

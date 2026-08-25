@@ -1,6 +1,5 @@
 const tokenStorageKey = 'itac.student.token';
 const profileStorageKey = 'itac.student.profile';
-const cacheTtlMs = 5 * 60 * 1000;
 export const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api').replace(/\/$/, '');
 
 type StoredStudentProfile = {
@@ -10,14 +9,6 @@ type StoredStudentProfile = {
   photoBase64?: string;
 };
 
-type CacheEntry<T> = {
-  expiresAt: number;
-  promise?: Promise<T>;
-  value?: T;
-};
-
-const responseCache = new Map<string, CacheEntry<unknown>>();
-
 export class ApiRequestError extends Error {
   status: number;
 
@@ -25,21 +16,6 @@ export class ApiRequestError extends Error {
     super(message);
     this.name = 'ApiRequestError';
     this.status = status;
-  }
-}
-
-function getCacheKey(path: string, token = '') {
-  return `${token || 'public'}:${path}`;
-}
-
-function clearCache(prefix = '') {
-  if (!prefix) {
-    responseCache.clear();
-    return;
-  }
-
-  for (const key of responseCache.keys()) {
-    if (key.includes(prefix)) responseCache.delete(key);
   }
 }
 
@@ -54,34 +30,11 @@ function clearStoredSessionForToken(token: string) {
   if (!token || token !== localStorage.getItem(tokenStorageKey)) return;
   localStorage.removeItem(tokenStorageKey);
   localStorage.removeItem(profileStorageKey);
-  clearCache();
 }
 
-async function cachedRequest<T>(path: string, options: RequestInit = {}, token = '') {
-  const key = getCacheKey(path, token);
-  const now = Date.now();
-  const cached = responseCache.get(key) as CacheEntry<T> | undefined;
+function storeStudentProfileSnapshot(student: unknown, requestToken = localStorage.getItem(tokenStorageKey) || '') {
+  if (requestToken !== localStorage.getItem(tokenStorageKey)) return;
 
-  if (cached && cached.expiresAt > now) {
-    if ('value' in cached) return cached.value as T;
-    if (cached.promise) return cached.promise;
-  }
-
-  const promise = request<T>(path, options)
-    .then((value) => {
-      responseCache.set(key, { expiresAt: Date.now() + cacheTtlMs, value });
-      return value;
-    })
-    .catch((error) => {
-      responseCache.delete(key);
-      throw error;
-    });
-
-  responseCache.set(key, { expiresAt: now + cacheTtlMs, promise });
-  return promise;
-}
-
-function storeStudentProfileSnapshot(student: unknown) {
   if (!student || typeof student !== 'object') {
     localStorage.removeItem(profileStorageKey);
     return;
@@ -171,8 +124,7 @@ export const AuthServiceApi = {
     });
 
     localStorage.setItem(tokenStorageKey, result.token);
-    storeStudentProfileSnapshot(result.student);
-    clearCache();
+    storeStudentProfileSnapshot(result.student, result.token);
     return result;
   },
   async requestRegistration(email: string) {
@@ -182,7 +134,7 @@ export const AuthServiceApi = {
     });
   },
   async getPublicJobPostingCount() {
-    const result = await cachedRequest<{ count: number }>('/jobs/public/count');
+    const result = await request<{ count: number }>('/jobs/public/count');
     return result.count;
   },
   async completeRegistration(token: string, password: string) {
@@ -213,12 +165,12 @@ export const AuthServiceApi = {
   },
   async getMyProfile<T>() {
     const token = this.getToken();
-    const profile = await cachedRequest<T>('/students/me', {
+    const profile = await request<T>('/students/me', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }, token);
-    storeStudentProfileSnapshot(profile);
+    });
+    storeStudentProfileSnapshot(profile, token);
     return profile;
   },
   async updateMyProfile<T>(profileUpdate: Record<string, string | null>) {
@@ -230,12 +182,7 @@ export const AuthServiceApi = {
       },
       body: JSON.stringify(profileUpdate),
     });
-    clearCache('/students/');
-    storeStudentProfileSnapshot(profile);
-    responseCache.set(getCacheKey('/students/me', token), {
-      expiresAt: Date.now() + cacheTtlMs,
-      value: profile,
-    });
+    storeStudentProfileSnapshot(profile, token);
     return profile;
   },
   async downloadMyAssessments(mode: 'all' | 'lead') {
@@ -249,19 +196,19 @@ export const AuthServiceApi = {
   },
   async getAssessmentMetrics<T>(mode: 'all' | 'lead') {
     const token = this.getToken();
-    return cachedRequest<T>(`/students/me/assessments/${mode}/metrics`, {
+    return request<T>(`/students/me/assessments/${mode}/metrics`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }, token);
+    });
   },
   async getStudentSurvey<T>(kind: 'entry' | 'exit') {
     const token = this.getToken();
-    return cachedRequest<T>(`/students/me/surveys/${kind}`, {
+    return request<T>(`/students/me/surveys/${kind}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }, token);
+    });
   },
   async saveStudentSurvey<T>(kind: 'entry' | 'exit', answers: unknown) {
     const token = this.getToken();
@@ -272,24 +219,18 @@ export const AuthServiceApi = {
       },
       body: JSON.stringify(answers),
     });
-    clearCache(`/students/me/surveys/${kind}`);
-    responseCache.set(getCacheKey(`/students/me/surveys/${kind}`, token), {
-      expiresAt: Date.now() + cacheTtlMs,
-      value: survey,
-    });
     return survey;
   },
   async getStudentProfile<T>(studentId: string) {
     const token = this.getToken();
-    return cachedRequest<T>(`/students/${studentId}`, {
+    return request<T>(`/students/${studentId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }, token);
+    });
   },
   async logout() {
     localStorage.removeItem(tokenStorageKey);
     localStorage.removeItem(profileStorageKey);
-    clearCache();
   },
 };

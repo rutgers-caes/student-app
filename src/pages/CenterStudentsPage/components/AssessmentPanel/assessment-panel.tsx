@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@radix-ui/themes';
 import { Eye, ShieldCheck } from 'lucide-react';
+import { Card } from '@/components/ui';
+import { iconSizes } from '@/styles/iconography';
 import { getAssessmentDisplayDates } from '../../center-students-formatters';
 import type { CenterStudent, PortalStudent } from '../../center-students-types';
 import {
@@ -19,11 +21,11 @@ export function AssessmentPanel({ allowDownloads = false, portalStudent, student
   const hasAssessments = assessmentTotalForStudent > 0;
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+    <Card as="section">
       <div className="flex flex-wrap items-start justify-between gap-5 border-b border-slate-200 px-5 py-4">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-semibold text-slate-950">
-            <ShieldCheck aria-hidden="true" size={22} />
+            <ShieldCheck aria-hidden="true" size={iconSizes.md} />
             Approved Assessments
           </h2>
           <p className="mt-2 text-sm font-semibold text-slate-600">
@@ -38,14 +40,14 @@ export function AssessmentPanel({ allowDownloads = false, portalStudent, student
               {hasAssessments ? (
                 <Button asChild color="blue">
                   <Link to="/assessments/metrics/all">
-                    <Eye aria-hidden="true" size={17} />
+                    <Eye aria-hidden="true" size={iconSizes.sm} />
                     All Assessments Metrics
                   </Link>
                 </Button>
               ) : (
                 <span title="No assessments yet">
                   <Button type="button" color="blue" disabled>
-                    <Eye aria-hidden="true" size={17} />
+                    <Eye aria-hidden="true" size={iconSizes.sm} />
                     All Assessments Metrics
                   </Button>
                 </span>
@@ -53,7 +55,7 @@ export function AssessmentPanel({ allowDownloads = false, portalStudent, student
               {hasLeadAssessments && (
                 <Button asChild color="blue">
                   <Link to="/assessments/metrics/lead">
-                    <Eye aria-hidden="true" size={17} />
+                    <Eye aria-hidden="true" size={iconSizes.sm} />
                     As Lead Metrics
                   </Link>
                 </Button>
@@ -122,6 +124,6 @@ export function AssessmentPanel({ allowDownloads = false, portalStudent, student
       ) : (
         <p className="px-5 py-5 text-slate-600">Not currently connected with any assessments.</p>
       )}
-    </section>
+    </Card>
   );
 }
