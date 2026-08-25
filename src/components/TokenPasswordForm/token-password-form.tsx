@@ -16,6 +16,7 @@ export function TokenPasswordForm({
   passwordValid,
   submitLabel,
   submittingLabel,
+  introText,
 }: {
   confirmPassword: string;
   confirmPasswordMatches: boolean;
@@ -28,10 +29,11 @@ export function TokenPasswordForm({
   passwordValid: boolean;
   submitLabel: string;
   submittingLabel: string;
+  introText?: string;
 }) {
   return (
     <form className="mx-auto mt-8 w-full max-w-[560px] border-t border-slate-200 pt-7" onSubmit={onSubmit}>
-      <p className="mb-5 text-slate-700">Create a new password for your student account.</p>
+      {introText && <p className="mb-5 text-slate-700">{introText}</p>}
       <TextField.Root
         type="password"
         size="3"

@@ -56,53 +56,60 @@ export default function PasswordResetPage() {
 
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!passwordValid || !confirmPasswordMatches) { setStatusMessage('Please complete the password rules before updating your password.'); return; }
+    if (!passwordValid || !confirmPasswordMatches) {
+      setStatusMessage('Please complete the password rules before updating your password.');
+      return;
+    }
+
     setStatusMessage('');
     completeResetMutation.mutate();
   }
 
   return (
     <PageShell variant="auth">
-      <main className="grid place-items-center px-5 pb-8 pt-3">
-        <section className="w-full max-w-[680px]" aria-labelledby="reset-title">
-          <div className="mt-5 w-full">
+      <main className="px-5 pb-12 pt-3">
+        <section className="mx-auto w-full max-w-[760px]" aria-labelledby="reset-title">
+          <Card className="mt-5 px-6 py-7 sm:px-8 sm:py-8">
             <h1 className={typographyClassNames.pageTitle} id="reset-title">
-              Reset Password
+              Reset Password for the ITAC Student Portal
             </h1>
 
-            {!activeToken && <>
-              <div className="pt-6">
-                <div className="grid gap-4 text-[17px] leading-8 text-slate-800">
-                  <p>Please enter an email address that exactly matches your ITAC student record.</p>
-                  <p>If this email matches an approved record, you will receive an email with a link to reset your password.</p>
+            {!activeToken && (
+              <>
+                <div className="pt-6">
+                  <div className="grid gap-4 text-[17px] leading-8 text-slate-800">
+                    <p>Please enter an email address that exactly matches your ITAC student record.</p>
+                    <p>If this email matches an approved record, you will receive an email with a link to reset your password.</p>
+                  </div>
                 </div>
-              </div>
 
-              <form className="mx-auto mt-8 w-full max-w-[560px] border-t border-slate-200 pt-7" onSubmit={handleSubmit}>
-                <FormField
-                  autoComplete="email"
-                  label="Email Address"
-                  layout="row"
-                  onChange={setEmail}
-                  placeholder="name@example.com"
-                  required
-                  type="email"
-                  value={email}
-                />
+                <form className="mx-auto mt-8 w-full max-w-[560px] border-t border-slate-200 pt-7" onSubmit={handleSubmit}>
+                  <FormField
+                    autoComplete="email"
+                    label="Email Address"
+                    layout="row"
+                    onChange={setEmail}
+                    placeholder="name@example.com"
+                    required
+                    type="email"
+                    value={email}
+                  />
 
-                <FormActionRow>
-                  <Button size="3" type="submit" disabled={isSubmitting}>
-                  <Send aria-hidden="true" size={iconSizes.sm} />
-                    {isSubmitting ? 'Requesting' : 'Reset Password'}
-                  </Button>
-                </FormActionRow>
-              </form>
-            </>}
+                  <FormActionRow>
+                    <Button size="3" type="submit" disabled={isSubmitting}>
+                      <Send aria-hidden="true" size={iconSizes.sm} />
+                      {isSubmitting ? 'Requesting' : 'Reset Password'}
+                    </Button>
+                  </FormActionRow>
+                </form>
+              </>
+            )}
 
             {activeToken && (
               <TokenPasswordForm
                 confirmPassword={confirmPassword}
                 confirmPasswordMatches={confirmPasswordMatches}
+                introText="Reset your password for your ITAC Student Portal."
                 isSubmitting={isSubmitting}
                 onConfirmPasswordChange={setConfirmPassword}
                 onPasswordChange={setPassword}
@@ -114,8 +121,8 @@ export default function PasswordResetPage() {
                 submittingLabel="Updating"
               />
             )}
-            {statusMessage && <StatusNotice className="mx-7 mb-6">{statusMessage}</StatusNotice>}
-          </div>
+            {statusMessage && <StatusNotice className="mt-6">{statusMessage}</StatusNotice>}
+          </Card>
         </section>
       </main>
 
