@@ -10,6 +10,7 @@ import LoginPage from '@/pages/LoginPage/login-page';
 import PasswordResetPage from '@/pages/PasswordResetPage/password-reset-page';
 import ProfilePage from '@/pages/ProfilePage';
 import RegisterPage from '@/pages/RegisterPage/register-page';
+import StudentSurveyPage from '@/pages/StudentSurvey';
 import { profilePath } from '@/data/navigation';
 import { queryClient } from '@/services/query-client';
 import { ToastViewport } from '@/utils/ToastViewport';
@@ -32,6 +33,8 @@ function App() {
             <Route path="/assessments/metrics/:mode" element={<AssessmentMetricsPage />} />
             <Route path="/certificate-request" element={<CertificateRequestPage />} />
             <Route path="/faq" element={<FAQPage />} />
+            <Route path="/entry-survey" element={<StudentSurveyPage kind="entry" />} />
+            <Route path="/exit-survey" element={<StudentSurveyPage kind="exit" />} />
             <Route path="*" element={<Navigate to={profilePath} replace />} />
           </Routes>
         </BrowserRouter>

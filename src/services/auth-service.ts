@@ -202,6 +202,25 @@ export const AuthServiceApi = {
       },
     });
   },
+  async getStudentSurvey<T>(kind: 'entry' | 'exit') {
+    const token = this.getToken();
+    return request<T>(`/students/me/surveys/${kind}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+  async saveStudentSurvey<T>(kind: 'entry' | 'exit', answers: unknown) {
+    const token = this.getToken();
+    const survey = await request<T>(`/students/me/surveys/${kind}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(answers),
+    });
+    return survey;
+  },
   async getStudentProfile<T>(studentId: string) {
     const token = this.getToken();
     return request<T>(`/students/${studentId}`, {

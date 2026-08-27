@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 export const ERROR_TOAST_DURATION: number = 10000; // 30 seconds
 export const DEFAULT_TOAST_DURATION: number = 5000; // 5 seconds
 
@@ -8,7 +10,7 @@ export type AppToast = {
     duration: number;
     message: string;
     position: ToastPosition;
-    style: React.CSSProperties;
+    style: CSSProperties;
     type: MessageLevel;
 };
 
@@ -23,8 +25,8 @@ export function subscribeToasts(listener: ToastListener) {
     };
 }
 
-function getStyle(type: MessageLevel): React.CSSProperties {
-    let style: React.CSSProperties;
+function getStyle(type: MessageLevel): CSSProperties {
+    let style: CSSProperties;
     switch (type) {
         case "Success":
             style = { backgroundColor: "var(--color-status-success-solid)", color: "var(--color-primary-text)" };
@@ -59,21 +61,21 @@ export function showToast(
 }
 
 export function errorToast(
-    message: string,
-    position: "top" | "bottom" = "bottom",
-    duration: number = ERROR_TOAST_DURATION,
+  message: string,
+  position: ToastPosition = 'bottom',
+  duration: number = ERROR_TOAST_DURATION,
 ) {
-    showToast("Error", message, position, duration);
+  showToast('Error', message, position, duration);
 }
 
-export function successToast(message: string, position: "top" | "bottom" = "bottom") {
-    showToast("Success", message, position);
+export function successToast(message: string, position: ToastPosition = 'bottom') {
+  showToast('Success', message, position);
 }
 
-export function warnToast(message: string, position: "top" | "bottom" = "bottom") {
-    showToast("Warn", message, position);
+export function warnToast(message: string, position: ToastPosition = 'bottom') {
+  showToast('Warn', message, position);
 }
 
-export function infoToast(message: string, position: "top" | "bottom" = "bottom") {
-    showToast("Info", message, position);
+export function infoToast(message: string, position: ToastPosition = 'bottom') {
+  showToast('Info', message, position);
 }
