@@ -18,4 +18,5 @@ export const queryKeys = {
   jobPostingCount: ['jobPostingCount'] as const,
   myProfile: ['myProfile'] as const,
   studentProfile: (studentId: string) => ['studentProfile', studentId] as const,
+  studentSurvey: (kind: 'entry' | 'exit') => ['studentSurvey', kind] as const,
 };

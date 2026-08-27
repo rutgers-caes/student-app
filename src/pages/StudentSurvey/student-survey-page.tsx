@@ -1,14 +1,16 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@radix-ui/themes';
 import { ClipboardCheck, Save } from 'lucide-react';
-import { AppNavbar } from '@/components/AppNavbar';
-import { studentProfilePath } from '@/data/navigation';
-import { ApiRequestError, AuthServiceApi } from '@/services/auth-service';
-import type { StudentProfile } from '@/types/student-profile';
+import { Card, PageShell, StatusNotice } from '@/components/ui';
+import { profilePath, studentProfilePath } from '@/data/navigation';
+import { usePortalStudent } from '@/hooks/use-portal-student';
+import { ApiRequestError } from '@/services/auth-service';
+import { iconSizes } from '@/styles/iconography';
 import type { SurveyKind } from '@/types/student-survey';
 import { successToast } from '@/utils/toasts';
 import { useUnsavedChangesGuard } from '@/utils/use-unsaved-changes-guard';
 import { SurveyQuestionField } from './components/SurveyQuestionField';
+import { useStudentSurvey } from './hooks/use-student-survey';
 import type { SurveyAnswers, SurveyResponse } from './student-survey-types';
 import {
   formatCompletedAt,
@@ -25,12 +27,11 @@ type StudentSurveyPageProps = {
 };
 
 export default function StudentSurveyPage({ kind }: StudentSurveyPageProps) {
-  const portalStudent = AuthServiceApi.getStoredStudentProfile<StudentProfile>();
+  const { data: portalStudent = null } = usePortalStudent();
+  const { saveSurveyMutation, surveyQuery } = useStudentSurvey(kind);
   const title = kind === 'entry' ? 'Entry Survey' : 'Exit Survey';
   const questions = useMemo(() => getSurveyQuestions(kind), [kind]);
   const [answers, setAnswers] = useState<SurveyAnswers>(getEmptySurveyAnswers(kind));
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
   const [portalCompletedAt, setPortalCompletedAt] = useState<string | null>(null);
@@ -40,34 +41,35 @@ export default function StudentSurveyPage({ kind }: StudentSurveyPageProps) {
     serializeSurveyAnswers(getEmptySurveyAnswers(kind)),
   );
 
+  const applySurveyResponse = useCallback((survey: SurveyResponse) => {
+    const loadedAnswers = mergeSurveyAnswers(kind, survey.answers);
+    setAnswers(loadedAnswers);
+    setSavedAnswersSnapshot(serializeSurveyAnswers(loadedAnswers));
+    setPortalCompletedAt(survey.portalCompletedAt);
+    setLegacyCompleted(survey.legacyCompleted);
+    setLegacyCompletedAt(survey.legacyCompletedAt);
+  }, [kind]);
+
   useEffect(() => {
-    let active = true;
-    setLoading(true);
+    const emptyAnswers = getEmptySurveyAnswers(kind);
+    setAnswers(emptyAnswers);
+    setSavedAnswersSnapshot(serializeSurveyAnswers(emptyAnswers));
+    setPortalCompletedAt(null);
+    setLegacyCompleted(false);
+    setLegacyCompletedAt(null);
     setError('');
     setSavedMessage('');
-
-    AuthServiceApi.getStudentSurvey<SurveyResponse>(kind)
-      .then((survey) => {
-        if (!active) return;
-        const loadedAnswers = mergeSurveyAnswers(kind, survey.answers);
-        setAnswers(loadedAnswers);
-        setSavedAnswersSnapshot(serializeSurveyAnswers(loadedAnswers));
-        setPortalCompletedAt(survey.portalCompletedAt);
-        setLegacyCompleted(survey.legacyCompleted);
-        setLegacyCompletedAt(survey.legacyCompletedAt);
-      })
-      .catch((requestError: unknown) => {
-        if (!active) return;
-        setError(requestError instanceof ApiRequestError ? requestError.message : 'Unable to load the survey.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
   }, [kind]);
+
+  useEffect(() => {
+    if (!surveyQuery.data) return;
+    applySurveyResponse(surveyQuery.data);
+  }, [applySurveyResponse, surveyQuery.data]);
+
+  useEffect(() => {
+    if (!surveyQuery.error) return;
+    setError(surveyQuery.error instanceof ApiRequestError ? surveyQuery.error.message : 'Unable to load the survey.');
+  }, [surveyQuery.error]);
 
   function clearSaveState() {
     setError('');
@@ -119,24 +121,17 @@ export default function StudentSurveyPage({ kind }: StudentSurveyPageProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving(true);
     setError('');
     setSavedMessage('');
 
     if (!isValid) {
-      setSaving(false);
       setError('Please answer every question before saving.');
       return;
     }
 
     try {
-      const survey = await AuthServiceApi.saveStudentSurvey<SurveyResponse>(kind, answers);
-      const savedAnswers = mergeSurveyAnswers(kind, survey.answers);
-      setAnswers(savedAnswers);
-      setSavedAnswersSnapshot(serializeSurveyAnswers(savedAnswers));
-      setPortalCompletedAt(survey.portalCompletedAt);
-      setLegacyCompleted(survey.legacyCompleted);
-      setLegacyCompletedAt(survey.legacyCompletedAt);
+      const survey = await saveSurveyMutation.mutateAsync(answers);
+      applySurveyResponse(survey);
       setSavedMessage(`${title} saved.`);
       successToast(`${title} saved.`);
     } catch (requestError) {
@@ -145,13 +140,13 @@ export default function StudentSurveyPage({ kind }: StudentSurveyPageProps) {
           ? requestError.message
           : `Unable to save the ${title.toLowerCase()}.`,
       );
-    } finally {
-      setSaving(false);
     }
   }
 
   const isDirty = serializeSurveyAnswers(answers) !== savedAnswersSnapshot;
   const isValid = questions.every((question) => isQuestionAnswered(answers, question));
+  const loading = surveyQuery.isLoading;
+  const saving = saveSurveyMutation.isPending;
   const guardDialog = useUnsavedChangesGuard({
     when: isDirty && !saving,
     message: 'All changes will not be saved.',
@@ -161,17 +156,17 @@ export default function StudentSurveyPage({ kind }: StudentSurveyPageProps) {
     : legacyCompleted
       ? `Completed in the legacy portal${legacyCompletedAt ? ` on ${formatCompletedAt(legacyCompletedAt)}` : ''}`
       : 'Not submitted yet';
+  const profileHref = portalStudent ? studentProfilePath(portalStudent.name) : profilePath;
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb]">
+    <PageShell firstName={portalStudent?.firstName || 'Student'} profileHref={profileHref} profileImage={portalStudent?.photoBase64 || ''}>
       {guardDialog}
-      <AppNavbar firstName={portalStudent?.firstName || 'Student'} profileHref={portalStudent ? studentProfilePath(portalStudent.name) : '/profile'} profileImage={portalStudent?.photoBase64 || ''} />
       <main className="mx-auto w-full max-w-[1180px] px-5 py-8">
-        <form className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" onSubmit={handleSubmit}>
+        <Card as="form" className="overflow-hidden" onSubmit={handleSubmit}>
           <header className="border-b border-slate-200 bg-slate-50 px-6 py-4">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-full bg-blue-100 text-doe-blue">
-                <ClipboardCheck aria-hidden="true" size={22} />
+                <ClipboardCheck aria-hidden="true" size={iconSizes.lg} />
               </span>
               <div>
                 <p className="text-sm font-semibold uppercase text-slate-500">{completedText}</p>
@@ -200,16 +195,20 @@ export default function StudentSurveyPage({ kind }: StudentSurveyPageProps) {
           )}
 
           <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-6 py-4">
-            <p className={error ? 'text-sm font-semibold text-red-700' : 'text-sm font-semibold text-green-700'}>
-              {error || savedMessage || (isDirty && !isValid ? 'Please answer every question before saving.' : '')}
-            </p>
+            <div className="min-h-11 flex-1">
+              {error && <StatusNotice className="px-4 py-2 text-left" role="alert" tone="error">{error}</StatusNotice>}
+              {!error && savedMessage && <StatusNotice className="px-4 py-2 text-left" tone="success">{savedMessage}</StatusNotice>}
+              {!error && !savedMessage && isDirty && !isValid && (
+                <StatusNotice className="px-4 py-2 text-left" tone="info">Please answer every question before saving.</StatusNotice>
+              )}
+            </div>
             <Button color="blue" disabled={loading || saving || !isDirty || !isValid} size="3" type="submit">
-              <Save aria-hidden="true" size={18} />
+              <Save aria-hidden="true" size={iconSizes.sm} />
               {saving ? 'Saving...' : `Save ${title}`}
             </Button>
           </footer>
-        </form>
+        </Card>
       </main>
-    </div>
+    </PageShell>
   );
 }
