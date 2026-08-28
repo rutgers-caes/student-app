@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { CenterBrandingBanner } from '@/components/CenterBrandingBanner';
 import { StatusNotice } from '@/components/ui';
 import { studentProfilePath } from '@/data/navigation';
+import { iconSizes } from '@/styles/iconography';
 import type { StudentProfile } from '@/types/student-profile';
 import { getCurrentCenterStudent } from './center-students-utils';
 import { AssessmentPanel } from './components/AssessmentPanel';
@@ -63,7 +64,7 @@ export function PeerStudentProfilePage({ portalStudent }: { portalStudent: Porta
             <StudentStatusBadge status={student.status} />
             <Button asChild className="!bg-white !text-slate-950 hover:!bg-white/90" size="3">
               <Link to="/center-students">
-                <ArrowLeft aria-hidden="true" size={18} />
+                <ArrowLeft aria-hidden="true" size={iconSizes.sm} />
                 Back to Center Students
               </Link>
             </Button>

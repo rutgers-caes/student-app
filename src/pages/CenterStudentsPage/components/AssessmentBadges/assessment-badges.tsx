@@ -1,4 +1,5 @@
 import { Building, Factory } from 'lucide-react';
+import { iconSizes } from '@/styles/iconography';
 import type { StudentAssessment } from '@/types/student-profile';
 
 export function AssessmentCountBadge({ value }: { value: number }) {
@@ -16,7 +17,7 @@ export function AssessmentTypeIcon({ assessmentType }: { assessmentType: Student
       aria-label={label}
       title={label}
     >
-      <Icon aria-hidden="true" size={20} strokeWidth={2.75} />
+      <Icon aria-hidden="true" size={iconSizes.md} strokeWidth={2.75} />
       <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-950 px-2 py-1 text-xs font-semibold text-white opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-visible:opacity-100">
         {label}
       </span>
