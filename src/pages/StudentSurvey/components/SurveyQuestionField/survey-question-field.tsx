@@ -55,7 +55,7 @@ export function SurveyQuestionField({
                     {question.type === 'single' ? (
                       <input
                         checked={selected}
-                        className="h-4 w-4 accent-[#1f5f9f]"
+                        className="h-4 w-4 accent-doe-blue"
                         name={`${kind}-${String(question.key)}`}
                         onChange={() => onSingleChange(question.key, option)}
                         type="radio"

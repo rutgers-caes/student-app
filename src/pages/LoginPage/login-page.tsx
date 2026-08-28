@@ -41,7 +41,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_50%_18%,rgb(96_122_168_/_8%),transparent_28%),linear-gradient(180deg,#fff_0%,#f8fafc_100%)] px-5 py-8">
+    <main className="auth-page-background grid min-h-screen place-items-center px-5 py-8">
       <section className="flex w-full max-w-[760px] flex-col items-center" aria-labelledby="login-title">
         <img className="block w-[min(430px,76vw)]" src={`${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo.png`} alt="U.S. Department of Energy" />
         

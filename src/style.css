@@ -6,8 +6,8 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #20242a;
-  background: #f4f7fb;
+  color: var(--color-body-text);
+  background: var(--color-surface);
 }
 
 * {
@@ -24,10 +24,13 @@ input {
 }
 
 @theme {
+  --color-body-text: #20242a;
   --color-primary: #607aa8;
   --color-primary-text: #ffffff;
   --color-doe-blue: #214baa;
   --color-surface: #f4f7fb;
+  --color-auth-start: #ffffff;
+  --color-auth-end: #f8fafc;
   --color-status-error-bg: #fef2f2;
   --color-status-error-border: #fee2e2;
   --color-status-error-text: #b91c1c;
@@ -43,4 +46,10 @@ input {
   --text-page-title: clamp(30px, 4vw, 42px);
   --text-section-title: clamp(20px, 2.2vw, 28px);
   --text-banner-title: clamp(18px, 2vw, 24px);
+}
+
+.auth-page-background {
+  background:
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--color-primary) 8%, transparent), transparent 28%),
+    linear-gradient(180deg, var(--color-auth-start) 0%, var(--color-auth-end) 100%);
 }
