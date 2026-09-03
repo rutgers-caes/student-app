@@ -4,8 +4,10 @@ import { isPasswordValid } from '@/components/PasswordRequirements';
 
 export function useTokenGatedPasswordForm(devSetupToken = '') {
   const [searchParams] = useSearchParams();
-  // TODO: Remove the DEV fallback before production; password setup must come only from emailed links.
-  const activeToken = searchParams.get('token') || (import.meta.env.DEV ? devSetupToken : '');
+  // TEMPORARY LAUNCH FALLBACK:
+  // Allows direct password setup/reset when the backend intentionally returns a
+  // one-time token. Remove this fallback once Postmark email delivery is ready.
+  const activeToken = searchParams.get('token') || devSetupToken;
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const passwordStarted = Boolean(password || confirmPassword);

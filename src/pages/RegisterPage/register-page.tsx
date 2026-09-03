@@ -36,8 +36,10 @@ export default function RegisterPage() {
   const requestRegistrationMutation = useMutation({
     mutationFn: () => AuthServiceApi.requestRegistration(email.trim()),
     onSuccess: (result) => {
-      // TODO: Remove this DEV-only shortcut before production; setup tokens should arrive only via emailed links.
-      if (import.meta.env.DEV && result.approved && result.directPasswordSetupAllowed && result.setupToken) {
+      // TEMPORARY LAUNCH FALLBACK:
+      // Direct setup is allowed only when the backend explicitly returns a token.
+      // Turn this off once Postmark email links are ready.
+      if (result.approved && result.directPasswordSetupAllowed && result.setupToken) {
         setSetupToken(result.setupToken);
       }
       setIsRegisterAllowed(Boolean(result.approved));

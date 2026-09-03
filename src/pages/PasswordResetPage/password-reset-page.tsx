@@ -13,6 +13,7 @@ import { typographyClassNames } from '@/styles/typography';
 
 export default function PasswordResetPage() {
   const [email, setEmail] = useState('');
+  const [setupToken, setSetupToken] = useState('');
   const [submittedEmail, setSubmittedEmail] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const navigate = useNavigate();
@@ -25,10 +26,16 @@ export default function PasswordResetPage() {
     passwordValid,
     setConfirmPassword,
     setPassword,
-  } = useTokenGatedPasswordForm();
+  } = useTokenGatedPasswordForm(setupToken);
   const requestResetMutation = useMutation({
     mutationFn: () => AuthServiceApi.requestPasswordReset(email.trim()),
     onSuccess: (result) => {
+      // TEMPORARY LAUNCH FALLBACK:
+      // Direct reset is allowed only when the backend explicitly returns a token.
+      // Turn this off once Postmark email links are ready.
+      if (result.directPasswordSetupAllowed && result.setupToken) {
+        setSetupToken(result.setupToken);
+      }
       setSubmittedEmail(email.trim());
       setStatusMessage(result.message);
     },
@@ -51,6 +58,7 @@ export default function PasswordResetPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatusMessage('');
+    setSetupToken('');
     requestResetMutation.mutate();
   }
 
