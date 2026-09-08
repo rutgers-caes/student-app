@@ -1,76 +1,81 @@
-import { toast, ToastOptions } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import type { CSSProperties } from 'react';
 
 export const ERROR_TOAST_DURATION: number = 10000; // 30 seconds
 export const DEFAULT_TOAST_DURATION: number = 5000; // 5 seconds
 
 export type MessageLevel = "Info" | "Warn" | "Error" | "Success";
+export type ToastPosition = "top" | "bottom";
+export type AppToast = {
+    id: number;
+    duration: number;
+    message: string;
+    position: ToastPosition;
+    style: CSSProperties;
+    type: MessageLevel;
+};
 
-function getOptions(type: MessageLevel, position: "top" | "bottom", duration: number = 3000): ToastOptions {
-    let style: React.CSSProperties;
+type ToastListener = (toast: AppToast) => void;
+
+const listeners = new Set<ToastListener>();
+
+export function subscribeToasts(listener: ToastListener) {
+    listeners.add(listener);
+    return () => {
+        listeners.delete(listener);
+    };
+}
+
+function getStyle(type: MessageLevel): CSSProperties {
+    let style: CSSProperties;
     switch (type) {
         case "Success":
-            style = { backgroundColor: "#049a58", color: "#fff" };
+            style = { backgroundColor: "var(--color-status-success-solid)", color: "var(--color-primary-text)" };
             break;
         case "Error":
-            style = { backgroundColor: "#8e2828", color: "#fff" };
+            style = { backgroundColor: "var(--color-status-error-solid)", color: "var(--color-primary-text)" };
             break;
         case "Warn":
-            style = { backgroundColor: "#ac8a00", color: "#fff" };
+            style = { backgroundColor: "var(--color-status-warn-solid)", color: "var(--color-primary-text)" };
             break;
         default:
-            style = { backgroundColor: "#009bfb", color: "#fff" };
+            style = { backgroundColor: "var(--color-status-info-solid)", color: "var(--color-primary-text)" };
     }
-    return {
-        autoClose: duration,
-        hideProgressBar: true,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        position: position === "top" ? "top-right" : "bottom-right",
-        style,
-    };
+    return style;
 }
 
 export function showToast(
     type: MessageLevel,
     message: string,
-    position: "top" | "bottom" = "bottom",
+    position: ToastPosition = "bottom",
     duration: number = DEFAULT_TOAST_DURATION,
 ) {
-    const opts = getOptions(type, position, duration);
-    switch (type) {
-        case "Error":
-            toast.error(message, opts);
-            break;
-        case "Success":
-            toast.success(message, opts);
-            break;
-        case "Warn":
-            toast.warn(message, opts);
-            break;
-        case "Info":
-            toast.info(message, opts);
-            break;
-    }
+    const toast = {
+        id: Date.now() + Math.random(),
+        duration,
+        message,
+        position,
+        style: getStyle(type),
+        type,
+    };
+    listeners.forEach((listener) => listener(toast));
 }
 
 export function errorToast(
-    message: string,
-    position: "top" | "bottom" = "bottom",
-    duration: number = ERROR_TOAST_DURATION,
+  message: string,
+  position: ToastPosition = 'bottom',
+  duration: number = ERROR_TOAST_DURATION,
 ) {
-    showToast("Error", message, position, duration);
+  showToast('Error', message, position, duration);
 }
 
-export function successToast(message: string, position: "top" | "bottom" = "bottom") {
-    showToast("Success", message, position);
+export function successToast(message: string, position: ToastPosition = 'bottom') {
+  showToast('Success', message, position);
 }
 
-export function warnToast(message: string, position: "top" | "bottom" = "bottom") {
-    showToast("Warn", message, position);
+export function warnToast(message: string, position: ToastPosition = 'bottom') {
+  showToast('Warn', message, position);
 }
 
-export function infoToast(message: string, position: "top" | "bottom" = "bottom") {
-    showToast("Info", message, position);
+export function infoToast(message: string, position: ToastPosition = 'bottom') {
+  showToast('Info', message, position);
 }
