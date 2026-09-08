@@ -10,12 +10,14 @@ export function PageShell({
   firstName = 'Student',
   profileHref = '/profile',
   profileImage = '',
+  showAuthLoginButton = true,
   variant = 'app',
 }: {
   children: ReactNode;
   firstName?: string;
   profileHref?: string;
   profileImage?: string;
+  showAuthLoginButton?: boolean;
   variant?: 'app' | 'auth';
 }) {
   if (variant === 'auth') {
@@ -26,12 +28,14 @@ export function PageShell({
             <img className="block w-[58px] shrink-0" src="/Docs/DOE_blue_seal_logo-head.png" alt="U.S. Department of Energy" />
             <span className="ml-3 text-section-title font-bold leading-tight tracking-normal max-sm:text-lg">ITAC Student and Alumni Portal</span>
           </Link>
-          <Button asChild size="3">
-            <Link to="/">
-              <LogIn aria-hidden="true" size={iconSizes.sm} />
-              Back to Login
-            </Link>
-          </Button>
+          {showAuthLoginButton && (
+            <Button asChild size="3">
+              <Link to="/">
+                <LogIn aria-hidden="true" size={iconSizes.sm} />
+                Back to Login
+              </Link>
+            </Button>
+          )}
         </header>
         {children}
       </div>

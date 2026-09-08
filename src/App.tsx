@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AssessmentMetricsPage from '@/pages/AssessmentMetricsPage/assessment-metrics-page';
 import { CenterStudentsRoutePage, PeerStudentProfileRoutePage } from '@/pages/CenterStudentsPage';
 import CertificateRequestPage from '@/pages/CertificateRequestPage/certificate-request-page';
+import CreatePasswordPage from '@/pages/CreatePasswordPage';
 import EditProfilePage from '@/pages/EditProfilePage';
 import FAQPage from '@/pages/FAQPage/faq-page';
 import LoginPage from '@/pages/LoginPage/login-page';
@@ -24,7 +25,7 @@ function App() {
             <Route path="/" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/password/reset" element={<PasswordResetPage />} />
-            <Route path="/account/password-setup" element={<PasswordResetPage />} />
+            <Route path="/account/password-setup" element={<CreatePasswordPage />} />
             <Route path={profilePath} element={<ProfilePage />} />
             <Route path="/:studentSlug/profile/detail" element={<ProfilePage />} />
             <Route path="/edit-profile" element={<EditProfilePage />} />
