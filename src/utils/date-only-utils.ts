@@ -1,4 +1,5 @@
 const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DATE_ONLY_TOKEN_REGEX = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
 
 const pad2 = (value: number) => String(value).padStart(2, '0');
 
@@ -67,6 +68,18 @@ export const formatDateOnlyForDisplay = (
 
   const [year, month, day] = normalized.split('-');
   return `${month}/${day}/${year}`;
+};
+
+export const formatDateOnlyTokensForDisplay = (
+  value: string | null | undefined,
+  fallback = '-'
+): string => {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  return trimmed.replace(DATE_ONLY_TOKEN_REGEX, (dateToken) => formatDateOnlyForDisplay(dateToken, dateToken));
 };
 
 // This function formats a date-only value into a long format for display, e.g. "Jan 01, 2024".

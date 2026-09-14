@@ -1,47 +1,109 @@
 import { useState } from 'react';
-import { Button, TextField } from '@radix-ui/themes';
+import type { FormEvent } from 'react';
+import { Button } from '@radix-ui/themes';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CircleHelp, ClipboardList, LogIn } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { AboutStudentPortalModal } from '@/components/AboutStudentPortalModal';
+import { FormField, StatusNotice } from '@/components/ui';
+import { AuthServiceApi } from '@/services/auth-service';
+import { queryKeys } from '@/services/query-client';
+import { profilePath, studentProfilePath } from '@/data/navigation';
+import { iconSizes } from '@/styles/iconography';
+import { typographyClassNames } from '@/styles/typography';
+
+const notRegisteredMessage = 'Not registered yet. Please register.';
 
 export default function LoginPage() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const loginMutation = useMutation({
+    mutationFn: () => AuthServiceApi.login(email, password),
+    onSuccess: (result) => {
+      queryClient.clear();
+      queryClient.setQueryData(queryKeys.myProfile, result.student);
+      const studentName = getLoginStudentName(result.student);
+      navigate(studentName ? studentProfilePath(studentName) : profilePath);
+    },
+    onError: (error) => {
+      setStatusMessage(formatLoginError(error));
+    },
+  });
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatusMessage('');
+    loginMutation.mutate();
+  }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_50%_18%,rgb(96_122_168_/_8%),transparent_28%),linear-gradient(180deg,#fff_0%,#f8fafc_100%)] px-5 py-8">
+    <main className="auth-page-background grid min-h-screen place-items-center px-5 py-8">
       <section className="flex w-full max-w-[760px] flex-col items-center" aria-labelledby="login-title">
-        <img className="block w-[min(430px,76vw)]" src="/Docs/DOE_blue_seal_logo.png" alt="U.S. Department of Energy" />
+        <img className="block w-[min(430px,76vw)]" src={`${import.meta.env.BASE_URL}Docs/DOE_blue_seal_logo.png`} alt="U.S. Department of Energy" />
         
         <div className="w-full max-w-[680px] px-[34px] py-7 max-sm:px-[18px]">
-          <h1 className="my-7 text-center text-[clamp(32px,4vw,46px)] font-normal leading-tight tracking-normal text-slate-950" id="login-title">
-            Student/Alumni Portal
-          </h1>
-          <form className="mx-auto w-full max-w-[540px]">
-            <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
-              <span className="text-right text-[17px] text-slate-700 max-sm:text-left">E-Mail Address</span>
-              <TextField.Root type="email" size="3" autoComplete="email" placeholder="name@example.com" />
-            </label>
+          <p className="mb-5 mt-6 w-full whitespace-nowrap text-center text-section-title font-semibold leading-tight tracking-normal text-slate-800">
+            Industrial Training and Assessment Centers
+          </p>
+          <h2 className={`mb-7 mt-0 text-center ${typographyClassNames.display}`} id="login-title">
+            Student and Alumni Portal
+          </h2>
+          <form className="mx-auto w-full max-w-[540px]" onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <FormField
+                autoComplete="email"
+                label="Email Address"
+                layout="row"
+                onChange={setEmail}
+                placeholder="name@example.com"
+                required
+                type="email"
+                value={email}
+              />
+            </div>
 
-            <label className="mb-3 grid grid-cols-[150px_minmax(0,1fr)] items-center gap-4 max-sm:grid-cols-1 max-sm:gap-2">
-              <span className="text-right text-[17px] text-slate-700 max-sm:text-left">Password</span>
-              <TextField.Root type="password" size="3" autoComplete="current-password" placeholder="Enter your password" />
-            </label>
+            <div className="mb-3">
+              <FormField
+                autoComplete="current-password"
+                label="Password"
+                layout="row"
+                onChange={setPassword}
+                placeholder="Enter your password"
+                required
+                type="password"
+                value={password}
+              />
+            </div>
 
             <div className="mb-5.5 ml-[90px] mt-1 flex flex-wrap items-center justify-center gap-3 max-sm:ml-0">
-              <Button color="gray" highContrast type="button">
-                <ClipboardList aria-hidden="true" size={20} />
-                Register
+              <Button asChild color="gray" highContrast>
+                <Link to="/register">
+                  <ClipboardList aria-hidden="true" size={iconSizes.md} />
+                  Register
+                </Link>
               </Button>
-              <Button type="submit">
-                <LogIn aria-hidden="true" size={21} />
-                Login
+              <Button type="submit" disabled={loginMutation.isPending}>
+                <LogIn aria-hidden="true" size={iconSizes.md} />
+                {loginMutation.isPending ? 'Logging in' : 'Login'}
               </Button>
               <a
                 className="rounded-md px-1 py-2 text-base font-semibold text-doe-blue underline underline-offset-4 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-blue-200 max-sm:w-full max-sm:text-center"
-                href="/forgot-password"
+                href="/password/reset"
+                target="_blank"
+                rel="noreferrer"
               >
                 Forgot Password?
               </a>
             </div>
+            {statusMessage && (
+              <StatusNotice className="mx-auto mb-5 max-w-[430px] px-3 py-2" tone="error">
+                {statusMessage}
+              </StatusNotice>
+            )}
           </form>
 
           <footer className="border-t border-slate-200 pt-5 text-center">
@@ -50,11 +112,11 @@ export default function LoginPage() {
               type="button"
               onClick={() => setIsAboutOpen(true)}
             >
-              What is the ITAC Student/Alumni Portal
-              <CircleHelp aria-hidden="true" size={21} />
+              What is the ITAC Student and Alumni Portal
+              <CircleHelp aria-hidden="true" size={iconSizes.md} />
             </button>
             <p className="mt-3 text-[15px] font-bold leading-normal text-slate-800">
-              For information about the ndustrial Training and Assessment Centers program, please visit:{' '}
+              For information about the ITAC program, please visit:{' '}
               <a className="text-doe-blue underline underline-offset-4" href="https://itacs.university/home" target="_blank" rel="noreferrer">
                 ITACS.university
               </a>
@@ -66,4 +128,26 @@ export default function LoginPage() {
       {isAboutOpen && <AboutStudentPortalModal onClose={() => setIsAboutOpen(false)} />}
     </main>
   );
+}
+
+function getLoginStudentName(student: unknown) {
+  if (!student || typeof student !== 'object') return '';
+  const name = (student as { name?: unknown }).name;
+  return typeof name === 'string' ? name : '';
+}
+
+function formatLoginError(error: unknown) {
+  const message = error instanceof Error ? error.message : '';
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes('not registered') ||
+    normalizedMessage.includes('not found') ||
+    normalizedMessage.includes('no student') ||
+    normalizedMessage.includes('email not in database')
+  ) {
+    return notRegisteredMessage;
+  }
+
+  return message || 'Unable to log in.';
 }

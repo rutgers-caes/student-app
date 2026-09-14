@@ -1,24 +1,25 @@
-import { AuthServiceApi } from "@/services/auth-service";
+import { apiBaseUrl, AuthServiceApi } from "@/services/auth-service";
 import { errorToast, successToast } from "@/utils/toasts.js";
 
-// API base URL - can be overridden by environment variables
-export const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:3000';
-console.log("API Utils: Using API base URL:", API_BASE_URL);
+export const API_BASE_URL = apiBaseUrl;
 
 // API endpoint constants
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: "/auth/login",
-    REFRESH: "/v1/auth/refresh",
-    LOGOUT: "/v1/auth/logout",
+    REGISTER_REQUEST: "/auth/register/request",
+    REGISTER_COMPLETE: "/auth/register/complete",
+    PASSWORD_FORGOT: "/auth/password/forgot",
+    PASSWORD_COMPLETE: "/auth/password/complete",
   },
   STUDENT: {
-    GET_STUDENT: "/v1/student",
-    UPDATE_STUDENT: "/v1/student",
-    GET_ALL_STUDENTS: "/v1/student/all",
+    GET_ME: "/students/me",
+    UPDATE_ME: "/students/me",
+    CHANGE_PASSWORD: "/students/me/password",
+    GET_BY_ID: (studentId: string) => `/students/${studentId}`,
+    DOWNLOAD_ALL_ASSESSMENTS: "/students/me/assessments/all.xlsx",
+    DOWNLOAD_LEAD_ASSESSMENTS: "/students/me/assessments/lead.xlsx",
   },
-  
 };
 
 export const getHeadersWithAuth = (
@@ -69,14 +70,14 @@ const apiRequest = async <T>(
 
   if (response.status === 401 && endpoint != API_ENDPOINTS.AUTH.LOGIN) {
     await AuthServiceApi.logout();
-    return;
+    throw new Error("Unauthorized");
   }
 
   if (response.status === 204) {
     return undefined as T;
   }
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   if (response.status > 201) {
     if (data.message) {
       errorToast(data.message);
