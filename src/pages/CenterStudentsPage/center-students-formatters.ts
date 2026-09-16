@@ -41,7 +41,8 @@ export function formatAssessmentsBeforeLead(value: number | null) {
 }
 
 export function getAssessmentDisplayDates(assessment: StudentAssessment) {
-  return assessment.visitDates?.length ? assessment.visitDates : [assessment.date || ''].filter(Boolean);
+  const dates = assessment.visitDates?.length ? assessment.visitDates : [assessment.date || ''].filter(Boolean);
+  return assessment.isDemo ? dates.map((date) => date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$2/$3/$1')) : dates;
 }
 
 export function formatTimeInItac(value: string | null | undefined) {

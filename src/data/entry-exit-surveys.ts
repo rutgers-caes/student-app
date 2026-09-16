@@ -74,7 +74,7 @@ export const entrySurveyQuestions: SurveyQuestion<EntrySurveyAnswers>[] = [
   },
   {
     key: 'heardAboutWe2',
-    label: "Have you heard about WE2, the ITAC program's student interest group?",
+    label: 'Have you heard about WE2? (the ITAC program’s student interest group which looks to promote leadership in energy engineering through e.g. a mentorship program)',
     type: 'single',
     options: ['Yes', 'No'],
   },
@@ -88,7 +88,7 @@ export const entrySurveyQuestions: SurveyQuestion<EntrySurveyAnswers>[] = [
 export const exitSurveyQuestions: SurveyQuestion<ExitSurveyAnswers>[] = [
   {
     key: 'assessmentResponsibilities',
-    label: 'What were your responsibilities on the assessments?',
+    label: 'What were your responsibilities on the assessments? (check all that apply)',
     type: 'multi',
     allowOther: true,
     options: [
@@ -110,7 +110,7 @@ export const exitSurveyQuestions: SurveyQuestion<ExitSurveyAnswers>[] = [
   },
   {
     key: 'improvedSkills',
-    label: 'Which personal skills and capabilities were enhanced as a result of your participation in the ITAC Program??',
+    label: 'Which of the following personal skills and capabilities were enhanced as a result of your participation in the ITAC Program? (Check all that apply)',
     type: 'multi',
     allowOther: true,
     options: [
@@ -133,7 +133,7 @@ export const exitSurveyQuestions: SurveyQuestion<ExitSurveyAnswers>[] = [
   },
   {
     key: 'certifications',
-    label: 'What registrations and/or certifications have you received?',
+    label: 'What registrations and/or certifications have you received? (check all that apply)',
     type: 'multi',
     allowOther: true,
     options: [
@@ -146,7 +146,7 @@ export const exitSurveyQuestions: SurveyQuestion<ExitSurveyAnswers>[] = [
   },
   {
     key: 'employmentStatus',
-    label: 'Please indicate your current employment status.',
+    label: 'Please indicate your current employment status (select one)',
     type: 'single',
     allowOther: true,
     options: [
@@ -165,7 +165,7 @@ export const exitSurveyQuestions: SurveyQuestion<ExitSurveyAnswers>[] = [
   },
   {
     key: 'itacEmploymentHelp',
-    label: 'Did your experience with the ITAC Program help you get your job?',
+    label: 'Did your experience with the ITAC Program help you get your job? (check all that apply)',
     type: 'multi',
     allowOther: true,
     options: [
@@ -179,7 +179,7 @@ export const exitSurveyQuestions: SurveyQuestion<ExitSurveyAnswers>[] = [
   },
   {
     key: 'employerType',
-    label: 'What type of employer do/will you work for?',
+    label: 'What type of employer do/will you work for? (check all that apply)',
     type: 'multi',
     allowOther: true,
     options: [
@@ -198,7 +198,7 @@ export const exitSurveyQuestions: SurveyQuestion<ExitSurveyAnswers>[] = [
   },
   {
     key: 'jobResponsibilities',
-    label: "Do your current position's responsibilities entail/will entail finding ways to address any of the following?",
+    label: "Do your current position's responsibilities entail/will entail finding ways to address any of the following? (check all that apply)",
     type: 'multi',
     allowOther: true,
     options: ['Save energy', 'Reduce waste', 'Enhance productivity', 'None of the above'],
@@ -210,7 +210,7 @@ export const exitSurveyQuestions: SurveyQuestion<ExitSurveyAnswers>[] = [
   },
   {
     key: 'iacImprovements',
-    label: 'How can the ITAC Program be improved?',
+    label: 'How can the ITAC Program be improved? (Check all that apply)',
     type: 'multi',
     allowOther: true,
     options: [

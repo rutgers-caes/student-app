@@ -84,14 +84,14 @@ export function AssessmentPanel({ allowDownloads = false, portalStudent, student
               >
                 <div>
                   <div className="grid grid-cols-[105px_32px] items-center gap-2">
-                    <a
+                    {assessment.isDemo ? <span className="text-base font-bold text-doe-blue">{assessment.id} (Sample)</span> : <a
                       className="text-lg font-bold text-doe-blue underline underline-offset-4"
                       href={`https://itac.university/assessment/${assessment.id}`}
                       target="_blank"
                       rel="noreferrer"
                     >
                       {assessment.id}
-                    </a>
+                    </a>}
                     <AssessmentTypeIcon assessmentType={assessment.assessmentType} />
                   </div>
                   <div className="mt-1 flex flex-col gap-0.5 text-base font-semibold text-slate-950">
