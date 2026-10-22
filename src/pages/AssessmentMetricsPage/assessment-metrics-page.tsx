@@ -135,39 +135,12 @@ function MetricsContent({ metrics }: { metrics: AssessmentMetrics }) {
 }
 
 function SpreadsheetMetrics({ metrics }: { metrics: AssessmentMetrics }) {
-  const recommendedSummaryRows = metrics.summaryRows.map((row) => row.recommended);
-  const implementedSummaryRows = metrics.summaryRows.map((row) => row.implemented);
-  const recommendedAssessmentRows = recommendedSummaryRows.slice(0, 4);
-  const implementedAssessmentRows = implementedSummaryRows.slice(0, 4);
-  const recommendedSavingsRows = recommendedSummaryRows.slice(4);
-  const implementedSavingsRows = implementedSummaryRows.slice(4);
-  const recommendedEnergyRows = metrics.energyRows.map((row) => ({
-    label: row.label,
-    units: row.recommended.units,
-    savings: row.recommended.savings,
-  }));
-  const implementedEnergyRows = metrics.energyRows.map((row) => ({
-    label: row.label,
-    units: row.implemented.units,
-    savings: row.implemented.savings,
-  }));
-  const recommendedTotalRows = metrics.totalRows.map((row) => row.recommended);
-  const implementedTotalRows = metrics.totalRows.map((row) => row.implemented);
-
   return (
-    <div className="grid gap-6 xl:grid-cols-2">
-      <div className="space-y-6">
-        <UnitTable rows={recommendedAssessmentRows} title="Recommended (TOTAL)" />
-        <SavingsTable rows={recommendedSavingsRows} title="Recommended Waste and Productivity Savings" />
-        <EnergyTable rows={recommendedEnergyRows} title="Recommended Energy Savings" />
-        <MetricTable emphasized rows={recommendedTotalRows} title="Recommended Totals" />
-      </div>
-      <div className="space-y-6">
-        <UnitTable rows={implementedAssessmentRows} title="Implemented (TOTAL)" />
-        <SavingsTable rows={implementedSavingsRows} title="Implemented Waste and Productivity Savings" />
-        <EnergyTable rows={implementedEnergyRows} title="Implemented Energy Savings" />
-        <MetricTable emphasized rows={implementedTotalRows} title="Implemented Totals" />
-      </div>
+    <div className="space-y-5">
+      <ComparisonTable rows={metrics.summaryRows.slice(0, 4)} title="Assessment Totals" valueType="number" />
+      <ComparisonTable rows={metrics.summaryRows.slice(4)} title="Waste and Productivity Savings" valueType="currency" />
+      <EnergyComparisonTable rows={metrics.energyRows} />
+      <ComparisonTable emphasized rows={metrics.totalRows} showSavings title="Totals" valueType="number" />
     </div>
   );
 }
@@ -175,7 +148,7 @@ function SpreadsheetMetrics({ metrics }: { metrics: AssessmentMetrics }) {
 function TableShell({ children, title }: { children: ReactNode; title: string }) {
   return (
     <Card className="overflow-hidden shadow-none">
-      <div className="border-b border-slate-200 bg-slate-900 px-4 py-3 text-sm font-bold text-white">
+      <div className="border-b border-primary bg-primary px-4 py-3 text-sm font-bold text-white">
         {title}
       </div>
       <div className="overflow-x-auto">
@@ -185,132 +158,132 @@ function TableShell({ children, title }: { children: ReactNode; title: string })
   );
 }
 
-function MetricTable({ emphasized = false, rows, title }: { emphasized?: boolean; rows: AssessmentMetricValue[]; title: string }) {
+function ComparisonTable({
+  emphasized = false,
+  rows,
+  showSavings = false,
+  title,
+  valueType,
+}: {
+  emphasized?: boolean;
+  rows: AssessmentMetricRow[];
+  showSavings?: boolean;
+  title: string;
+  valueType: 'currency' | 'number';
+}) {
+  const formatValue = valueType === 'currency' ? formatCurrency : formatNumber;
+
   return (
     <TableShell title={title}>
-      <div className="min-w-[520px]">
-        <ReportHeader />
-        {rows.map((row) => (
-          <ReportRow emphasized={emphasized} key={row.label} label={row.label} savings={row.savings} units={row.value} />
-        ))}
-      </div>
+      <table className={`w-full border-collapse text-sm ${showSavings ? 'min-w-[760px]' : 'min-w-[560px]'}`}>
+        <thead>
+          {showSavings ? (
+            <>
+              <tr className="border-b border-slate-200 bg-blue-50 text-xs font-bold uppercase tracking-[0.06em] text-black">
+                <th className="px-4 py-2 text-left" rowSpan={2} scope="col">Metric</th>
+                <th className="border-l border-slate-200 px-4 py-2 text-center" colSpan={2} scope="colgroup">Recommended</th>
+                <th className="border-l border-slate-200 px-4 py-2 text-center" colSpan={2} scope="colgroup">Implemented</th>
+              </tr>
+              <tr className="border-b border-slate-200 bg-blue-50 text-xs font-bold uppercase tracking-[0.06em] text-black">
+                <th className="border-l border-slate-200 px-4 py-2 text-right" scope="col">Units</th>
+                <th className="px-4 py-2 text-right" scope="col">Savings</th>
+                <th className="border-l border-slate-200 px-4 py-2 text-right" scope="col">Units</th>
+                <th className="px-4 py-2 text-right" scope="col">Savings</th>
+              </tr>
+            </>
+          ) : (
+            <tr className="border-b border-slate-200 bg-blue-50 text-xs font-bold uppercase tracking-[0.06em] text-black">
+              <th className="px-4 py-2 text-left" scope="col">Metric</th>
+              <th className="border-l border-slate-200 px-4 py-2 text-right" scope="col">Recommended</th>
+              <th className="border-l border-slate-200 px-4 py-2 text-right" scope="col">Implemented</th>
+            </tr>
+          )}
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr className={`border-b border-slate-200 last:border-b-0 ${emphasized ? 'bg-blue-50/60 font-bold text-slate-950' : 'text-slate-700'}`} key={`${row.recommended.label}-${row.implemented.label}`}>
+              <MetricLabel>{getSharedMetricLabel(row)}</MetricLabel>
+              <MetricValue divided>{formatValue(row.recommended.value)}</MetricValue>
+              {showSavings && <MetricValue>{formatCurrency(row.recommended.savings)}</MetricValue>}
+              <MetricValue divided>{formatValue(row.implemented.value)}</MetricValue>
+              {showSavings && <MetricValue>{formatCurrency(row.implemented.savings)}</MetricValue>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </TableShell>
   );
 }
 
-function UnitTable({ rows, title }: { rows: AssessmentMetricValue[]; title: string }) {
+function EnergyComparisonTable({ rows }: { rows: AssessmentEnergyRow[] }) {
   return (
-    <TableShell title={title}>
-      <div className="min-w-[400px]">
-        <UnitHeader />
-        {rows.map((row) => (
-          <UnitRow key={row.label} label={row.label} units={row.value} />
-        ))}
-      </div>
+    <TableShell title="Energy Savings">
+      <table className="w-full min-w-[760px] border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 bg-blue-50 text-xs font-bold uppercase tracking-[0.06em] text-black">
+            <th className="px-4 py-2 text-left" rowSpan={2} scope="col">Metric</th>
+            <th className="border-l border-slate-200 px-4 py-2 text-center" colSpan={2} scope="colgroup">Recommended</th>
+            <th className="border-l border-slate-200 px-4 py-2 text-center" colSpan={2} scope="colgroup">Implemented</th>
+          </tr>
+          <tr className="border-b border-slate-200 bg-blue-50 text-xs font-bold uppercase tracking-[0.06em] text-black">
+            <th className="border-l border-slate-200 px-4 py-2 text-right" scope="col">Units</th>
+            <th className="px-4 py-2 text-right" scope="col">Savings</th>
+            <th className="border-l border-slate-200 px-4 py-2 text-right" scope="col">Units</th>
+            <th className="px-4 py-2 text-right" scope="col">Savings</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <EnergyComparisonRow key={row.label} row={row} showMmbtuDivider={index === 3} />
+          ))}
+        </tbody>
+      </table>
     </TableShell>
   );
 }
 
-function SavingsTable({ rows, title }: { rows: AssessmentMetricValue[]; title: string }) {
+function EnergyComparisonRow({ row, showMmbtuDivider }: { row: AssessmentEnergyRow; showMmbtuDivider: boolean }) {
   return (
-    <TableShell title={title}>
-      <div className="min-w-[400px]">
-        <SavingsHeader />
-        {rows.map((row) => (
-          <SavingsRow key={row.label} label={row.label} savings={row.value} />
-        ))}
-      </div>
-    </TableShell>
+    <>
+      {showMmbtuDivider && (
+        <tr className="border-y border-blue-200 bg-blue-100/70 text-xs font-bold uppercase tracking-[0.06em] text-slate-700">
+          <td className="px-4 py-1.5">Direct energy</td>
+          <td className="border-l border-slate-200 px-4 py-1.5 text-right">MMBTU</td>
+          <td />
+          <td className="border-l border-slate-200 px-4 py-1.5 text-right">MMBTU</td>
+          <td />
+        </tr>
+      )}
+      <tr className="border-b border-slate-200 text-slate-700 last:border-b-0">
+        <MetricLabel>{row.label}</MetricLabel>
+        <MetricValue divided>{formatNumber(row.recommended.units)}</MetricValue>
+        <MetricValue>{formatCurrency(row.recommended.savings)}</MetricValue>
+        <MetricValue divided>{formatNumber(row.implemented.units)}</MetricValue>
+        <MetricValue>{formatCurrency(row.implemented.savings)}</MetricValue>
+      </tr>
+    </>
   );
 }
 
-function EnergyTable({ rows, title }: { rows: Array<{ label: string; units: number; savings: number }>; title: string }) {
+function MetricLabel({ children, divided = false }: { children: ReactNode; divided?: boolean }) {
   return (
-    <TableShell title={title}>
-      <div className="min-w-[520px]">
-        <ReportHeader />
-        {rows.slice(0, 3).map((row) => (
-          <ReportRow key={row.label} label={row.label} savings={row.savings} units={row.units} />
-        ))}
-        <MmbtuRow />
-        {rows.slice(3).map((row) => (
-          <ReportRow key={row.label} label={row.label} savings={row.savings} units={row.units} />
-        ))}
-      </div>
-    </TableShell>
+    <th className={`px-4 py-2 text-left font-medium leading-snug ${divided ? 'border-l border-slate-200' : ''}`} scope="row">
+      {children}
+    </th>
   );
 }
 
-function ReportHeader() {
-  return (
-    <div className="grid grid-cols-[minmax(240px,1fr)_120px_140px] border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-[0.06em] text-slate-500">
-      <ReportCell>Metric</ReportCell>
-      <ReportCell align="right">Units</ReportCell>
-      <ReportCell align="right">Savings</ReportCell>
-    </div>
-  );
+function MetricValue({ children, divided = false }: { children: ReactNode; divided?: boolean }) {
+  return <td className={`whitespace-nowrap px-4 py-2 text-right tabular-nums ${divided ? 'border-l border-slate-200' : ''}`}>{children}</td>;
 }
 
-function UnitHeader() {
-  return (
-    <div className="grid grid-cols-[minmax(240px,1fr)_120px] border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-[0.06em] text-slate-500">
-      <ReportCell>Metric</ReportCell>
-      <ReportCell align="right">Units</ReportCell>
-    </div>
-  );
-}
+function getSharedMetricLabel(row: AssessmentMetricRow) {
+  const recommendedLabel = row.recommended.label.replace(/^Recommended\s+/i, '');
+  const implementedLabel = row.implemented.label.replace(/^Implemented\s+/i, '');
 
-function SavingsHeader() {
-  return (
-    <div className="grid grid-cols-[minmax(240px,1fr)_140px] border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-[0.06em] text-slate-500">
-      <ReportCell>Metric</ReportCell>
-      <ReportCell align="right">Savings</ReportCell>
-    </div>
-  );
-}
-
-function ReportRow({ emphasized = false, label, savings, units }: { emphasized?: boolean; label: string; savings: number | null; units: number | null }) {
-  return (
-    <div className={`grid grid-cols-[minmax(240px,1fr)_120px_140px] border-b border-slate-200 text-sm last:border-b-0 ${emphasized ? 'bg-slate-50 font-bold text-slate-950' : 'text-slate-700'}`}>
-      <ReportCell>{label}</ReportCell>
-      <ReportCell align="right">{formatMetricNumber(units)}</ReportCell>
-      <ReportCell align="right">{formatMetricCurrency(savings)}</ReportCell>
-    </div>
-  );
-}
-
-function UnitRow({ label, units }: { label: string; units: number | null }) {
-  return (
-    <div className="grid grid-cols-[minmax(240px,1fr)_120px] border-b border-slate-200 text-sm text-slate-700 last:border-b-0">
-      <ReportCell>{label}</ReportCell>
-      <ReportCell align="right">{formatMetricNumber(units)}</ReportCell>
-    </div>
-  );
-}
-
-function SavingsRow({ label, savings }: { label: string; savings: number | null }) {
-  return (
-    <div className="grid grid-cols-[minmax(240px,1fr)_140px] border-b border-slate-200 text-sm text-slate-700 last:border-b-0">
-      <ReportCell>{label}</ReportCell>
-      <ReportCell align="right">{formatCurrency(savings)}</ReportCell>
-    </div>
-  );
-}
-
-function MmbtuRow() {
-  return (
-    <div className="grid grid-cols-[minmax(240px,1fr)_120px_140px] border-b border-slate-200 bg-slate-200 text-sm font-bold text-slate-800">
-      <ReportCell />
-      <ReportCell align="center">MMBTU</ReportCell>
-      <ReportCell />
-    </div>
-  );
-}
-
-function ReportCell({ align = 'left', children }: { align?: 'left' | 'center' | 'right'; children?: ReactNode }) {
-  const alignment = align === 'right' ? 'text-right tabular-nums' : align === 'center' ? 'text-center' : '';
-
-  return <div className={`min-h-9 px-4 py-2 leading-snug ${alignment}`}>{children}</div>;
+  return recommendedLabel === implementedLabel
+    ? recommendedLabel
+    : `${recommendedLabel} / ${implementedLabel}`;
 }
 
 function PageNotice({ message, tone = 'info' }: { message: string; tone?: 'info' | 'error' }) {
@@ -333,12 +306,4 @@ function formatCurrency(value: number | null) {
     maximumFractionDigits: 0,
     style: 'currency',
   });
-}
-
-function formatMetricNumber(value: number | null) {
-  return value == null ? '' : formatNumber(value);
-}
-
-function formatMetricCurrency(value: number | null) {
-  return value == null ? '' : formatCurrency(value);
 }
