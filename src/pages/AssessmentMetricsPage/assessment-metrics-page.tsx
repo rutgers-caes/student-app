@@ -10,6 +10,7 @@ import { AuthServiceApi } from '@/services/auth-service';
 import { queryKeys } from '@/services/query-client';
 import { iconSizes } from '@/styles/iconography';
 import type { StudentProfile } from '@/types/student-profile';
+import { comparisonMetricValue } from './metric-display-value';
 
 type AssessmentMetricMode = 'all' | 'lead';
 
@@ -203,9 +204,9 @@ function ComparisonTable({
           {rows.map((row) => (
             <tr className={`border-b border-slate-200 last:border-b-0 ${emphasized ? 'bg-blue-50/60 font-bold text-slate-950' : 'text-slate-700'}`} key={`${row.recommended.label}-${row.implemented.label}`}>
               <MetricLabel>{getSharedMetricLabel(row)}</MetricLabel>
-              <MetricValue divided>{formatValue(row.recommended.value)}</MetricValue>
+              <MetricValue divided>{formatValue(comparisonMetricValue(row.recommended, valueType))}</MetricValue>
               {showSavings && <MetricValue>{formatCurrency(row.recommended.savings)}</MetricValue>}
-              <MetricValue divided>{formatValue(row.implemented.value)}</MetricValue>
+              <MetricValue divided>{formatValue(comparisonMetricValue(row.implemented, valueType))}</MetricValue>
               {showSavings && <MetricValue>{formatCurrency(row.implemented.savings)}</MetricValue>}
             </tr>
           ))}

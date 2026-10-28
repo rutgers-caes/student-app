@@ -13,6 +13,7 @@ export type StudentAssessmentParticipant = {
 };
 
 export type StudentAssessment = {
+  isDemo?: boolean;
   id: string;
   date?: string;
   visitDates: string[];
